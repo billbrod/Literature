@@ -4,8 +4,13 @@ paper_dir = "/home/billbrod/Documents/Paper-annot"
 
 org_format="""#+STARTUP: showall
 * {todo} {title} \t\t\t\t\t {tags}
-  {read_entry}
-  ADDED: <{date}>
+   :PROPERTIES:
+   :ADDED: [{date}]
+   :BIBTEX-KEY: {key}
+   :AUTHOR: {authors}
+   :YEAR: {year}
+   :PUBLICATION: {publication}
+   :END:
 
 ** Keywords
    {kws}
@@ -22,8 +27,10 @@ org_format="""#+STARTUP: showall
    Notes: [[file:{org_path}]]
 """
 
+#Make the paths all use the tilde for home directory, because I will use this on separate computers.
+
 def main(fill_column=70):
-    import bibtexparser,shutil,os,re
+    import bibtexparser,shutil,os,re,glob
     from lit_update import get_annotations,col_wrap
     import numpy as np
     import pandas as pd
@@ -90,11 +97,8 @@ def main(fill_column=70):
                 tmp[idx] = col_wrap(t,fill_column)
             headers = "\n\n".join(tmp)
             headers = headers.replace("\n","\n%s"%re.search('Notes\n( *){notes}',org_format).groups()[0])
-        if mend_entry["dateAccessed"]:
-            read_entry = "CLOSED: [%s]"%mend_entry["dateAccessed"]
-        else:
-            read_entry=""
-        org_file = org_format.format(title=bib['title'],tags=tags,date=mend_entry['date_added'],read_entry=read_entry,annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["dateAccessed"]),org_path=org_path,kws=keywords) 
+        print "Read? %s"%mend_entry["read"]
+        org_file = org_format.format(title=bib['title'],tags=tags,date=mend_entry['date_added'],annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["read"]),org_path=org_path,kws=keywords,authors=bib['author'],year=mend_entry['year'],publication=mend_entry['publication'],key=bib_id) 
         with open(org_path,'w') as f:
             f.write(org_file)
         bib['file'] = new_path
@@ -103,17 +107,21 @@ def main(fill_column=70):
         with open(bib_new_path,'w') as f:
             bibtexparser.dump(bib_save,f)
         print('')
-        #Get id
-        #Try to find it in mendeley db, if not look for thing with similar title
-        #Check for title-annotated in Unsorted folder
-        #  copy it to new folder
-        #  extract annotations? or use those from notes? Probably just use from notes, already done that work. Oh but there might be some on the file that aren't Mendeley's...
-        #  Copy annotations + stuff in df to a .org file
-        #  Save bib entry
 
-    
-    #Copy over bib, create master org by concatenating all orgs
+    master_org_text=""
+    for org_file in glob.glob(paper_dir+'/*/*.org'):
+        with open(org_file) as f:
+            tmp = f.read()
+        master_org_text+="\n".join(tmp.split("\n")[1:])+"\n\n"
+    with open(paper_dir+'/literature.org','w') as f:
+        f.write(master_org_text)
         
+    master_bib_text=""
+    for bib_file in glob.glob(paper_dir+'/*/*.bib'):
+        with open(bib_file) as f:
+            master_bib_text += f.read()
+    with open(paper_dir+'/literature.bib','w') as f:
+        f.write(master_bib_text)        
     
 def parse_mend_db(path):
     import sqlite3 as lite
@@ -135,7 +143,7 @@ def parse_mend_db(path):
     cur.execute("SELECT id, documentId, page, note, createdTime, modifiedTime FROM FileNotes")
     notes = cur.fetchall()
 
-    cur.execute("SELECT id, added, citationKey, dateAccessed FROM Documents")
+    cur.execute("SELECT id, added, citationKey, read, year, publication FROM Documents")
     date_added = cur.fetchall()
     date_added = np.array(date_added)
     
@@ -157,10 +165,13 @@ def parse_mend_db(path):
     
     notes = pd.DataFrame(data=notes, columns=["id", "documentId", "page", "note", "createdTime", "modifiedTime"])
 
-    df = pd.DataFrame(data=date_added,index=date_added[:,0],columns=['documentName','date_added','citationKey','dateAccessed'])
+    df = pd.DataFrame(data=date_added,index=date_added[:,0],columns=['documentName','date_added','citationKey','read','year','publication'])
+    #The read values are unicodes, we convert them to booleans. They're can also be Nones, for some reason, so we make those false as well
+    df.read = df.read.map({'true':True,'false':False,None:False})
     df.date_added = df.date_added.map(lambda x: datetime.date.fromtimestamp(x/1000).strftime("%Y-%m-%d"))
 
     headers = pd.DataFrame(data=headers[:,1],index=headers[:,0],columns=['header_note'])
+    
     headers.index = headers.index.astype('int64')
     #Need to do this to get rid of that html-style markup
     headers.header_note = headers.header_note.map(lambda x: html2text.html2text(expandEntities(x)))
