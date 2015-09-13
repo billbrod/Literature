@@ -27,10 +27,8 @@ org_format="""#+STARTUP: showall
    Notes: [[file:{org_path}]]
 """
 
-#Make the paths all use the tilde for home directory, because I will use this on separate computers.
-
 def main(fill_column=70):
-    import bibtexparser,shutil,os,re,glob
+    import bibtexparser,shutil,os,re,glob,stat
     from lit_update import get_annotations,col_wrap
     import numpy as np
     import pandas as pd
@@ -98,18 +96,26 @@ def main(fill_column=70):
             headers = "\n\n".join(tmp)
             headers = headers.replace("\n","\n%s"%re.search('Notes\n( *){notes}',org_format).groups()[0])
         print "Read? %s"%mend_entry["read"]
-        org_file = org_format.format(title=bib['title'],tags=tags,date=mend_entry['date_added'],annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["read"]),org_path=org_path,kws=keywords,authors=bib['author'],year=mend_entry['year'],publication=mend_entry['publication'],key=bib_id) 
-        with open(org_path,'w') as f:
-            f.write(org_file)
+        #This allows us to replace the home directory with a tilde,
+        #since I'll be using this across computers. Org can handle the
+        #tilde without any problem, so it's alright
+        for tmp_path in ['new_path','org_path','bib_new_path']:
+            exec(tmp_path+" = "+tmp_path+".replace(os.path.expanduser('~'),'~')")
+        org_file = org_format.format(title=bib['title'],tags=tags,date=mend_entry['date_added'],annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["read"]),org_path=org_path,kws=keywords,authors=bib['author'],year=mend_entry['year'],publication=mend_entry['publication'],key=bib_id)
         bib['file'] = new_path
         bib_save = bibtexparser.bibdatabase.BibDatabase()
         bib_save.entries = [bib]
-        with open(bib_new_path,'w') as f:
+        #expanduser is necessary because python does not like the
+        #tilde; we need to expand it to get a path it can use.
+        with open(os.path.expanduser(bib_new_path),'w') as f:
             bibtexparser.dump(bib_save,f)
+        with open(os.path.expanduser(org_path),'w') as f:
+            f.write(org_file)
         print('')
 
     master_org_text=""
-    for org_file in glob.glob(paper_dir+'/*/*.org'):
+    #Want to go through org files in alphabetical order
+    for org_file in sorted(glob.glob(paper_dir+'/*/*.org')):
         with open(org_file) as f:
             tmp = f.read()
         master_org_text+="\n".join(tmp.split("\n")[1:])+"\n\n"
@@ -122,6 +128,11 @@ def main(fill_column=70):
             master_bib_text += f.read()
     with open(paper_dir+'/literature.bib','w') as f:
         f.write(master_bib_text)        
+    #We want these files to be read-only so that the only edits are to
+    #the individual org and bib files. If this is too inconvenient,
+    #may end up changing it.
+    os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
+    os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
     
 def parse_mend_db(path):
     import sqlite3 as lite

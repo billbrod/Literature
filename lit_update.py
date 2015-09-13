@@ -1,15 +1,82 @@
 #!/usr/bin/env python
 
-# see 
+#For update:
+# - For each bib entry in master bib, check since last master bib
+#  update:
+#  - If pdf updated: re-run get annotations
+#  - If notes updated: update master notes
+#  - If bib updated: update master bib
 
-#TODO:
-#Get the files from that other website, play with them. If they don't already do the following, then:
-#Make this move pdf into right direcotry
-#Add annotations to a .org with same name in same file, under heading Annotations (* or **, haven't decided, base it on stuff from above)
-#Make it do something similar to the R script with a bib file.....
+# Decide if I want to make the master bib and org files unable for me
+# to edit or try and find a way to merge any edits. There's a python
+# difflib that would help with this. -- I think for now, make the
+# "master" files un-writable, and just update them to reflect the
+# changes in the sub-files.
 
-#Figure out a way to get the notes to have a newline every so many characters, but only at a word break
-#But not if it's a link (how check?)
+#Also need a function for adding a file to library. That should
+#intialize the note file (move org_format to new script, have
+#mendeley_to_org grab it from there), make directory, rename pdf and
+#move it there. Require bib to be downloaded as well or get that
+#automatically? Hard without doi, and getting a doi automatically not
+#guaranteed.  Can try to get doi like so:
+"""
+regex=re.compile('\\b(10[.][0-9]{4,}(?:[.][0-9]+)*/(?:(?![\"&\'<>])\S)+)\\b')
+
+doc = poppler.document_new_from_file(path,None)
+pages = [doc.get_page(i) for i in range(doc.get_n_pages())]
+doi = []
+for page in pages:
+    text = page.get_text()
+    doi += re.findall(regex,text)
+#check they're all the same and peace out
+"""
+#If got doi, then just do the following. Else, give option to enter doi, then tell user to manually download bib.
+
+#With pybib installed, can just run `bib DOI` from the command line and get its bib file. Can run from within python though?
+#Actually, just use the code that underlies it, found at https://github.com/jgilchrist/pybib/blob/master/pybib/utils.py
+
+
+def update(fill_column=70):
+    import os,stat,bibtexparser,time,re
+    from mendeley_to_org import paper_dir,org_format
+    
+    #Make it so we can write again...
+    os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
+    os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)
+    
+    if paper_dir[-1]=='/':
+        paper_dir=paper_dir[:-1]
+    
+    with open(paper_dir+'/literature.bib') as f:
+        bib_db = bibtexparser.loads(f.read())
+
+    modified_time = os.path.getmtime(paper_dir+'/literature.bib')
+    assert modified_time==os.path.getmtime(paper_dir+'/literature.bib'),'Master bib and org files edited separately somehow!'
+    for bib in bib_db.entries:
+        dir_path = os.path.expanduser(os.path.split(bib['file'])[0])
+        bib_id = bib['ID']
+        if os.path.getmtime('%s/%s.pdf'%(dir_path,bib_id)) > modified_time:
+            annots = get_annotations('%s/%s.pdf'%(dir_path,bib_id),'org',org_indent=re.search('Annotations *\n( *){annotations}',org_format).groups()[0],fill_column=fill_column)
+            with open('%s/%s.org'%(dir_path,bib_id),'r+') as f:
+                org_note = f.read()
+                org_note = re.sub("Annotations.*\n([*]+)","Annotations\n\n%s\n\n%s"%(annots,r"\1"),org_note,flags=re.DOTALL)
+                f.seek(0)
+                f.write(org_note)
+                f.truncate()
+        if os.path.getmtime('%s/%s.org'%(dir_path,bib_id)) > modified_time:
+            #Replace section in master org with new local org (use regex?)
+            'hi'
+        if os.path.getmtime('%s/%s.bib'%(dir_path,bib_id)) > modified_time:
+            #Replace section in master bib with new local bib (use regex?)
+            'bye'
+            
+            
+    #We want these files to be read-only so that the only edits are to
+    #the individual org and bib files. If this is too inconvenient,
+    #may end up changing it.
+    os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
+    os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
+            
 
 def get_annotations(path,note_format='plain',org_indent='   ',fill_column=70):
     # Based on code from Steve Powell, found at
