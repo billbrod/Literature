@@ -1,47 +1,30 @@
+#Absolute to your mendeley database. Recommended that you make a backup copy
 mend_path = "/home/billbrod/Documents/Paper-annot/mend.sqlite"
+
+#Absolute path to bib file exported by Mendeley.
 bib_path = "/home/billbrod/Documents/Paper-annot/bibliography.bib"
-paper_dir = "/home/billbrod/Documents/Paper-annot"
 
-org_format="""#+STARTUP: showall
-* {todo} {title} \t\t\t\t\t {tags}
-   :PROPERTIES:
-   :ADDED: [{date}]
-   :BIBTEX-KEY: {key}
-   :AUTHOR: {authors}
-   :YEAR: {year}
-   :PUBLICATION: {publication}
-   :END:
 
-** Keywords
-   {kws}
-
-** Notes
-   {notes}
-
-** Annotations
-   {annotations}
-
-** Links
-   PDF: [[file:{pdf_path}]]
-   BibTex: [[file:{bib_path}]]
-   Notes: [[file:{org_path}]]
-"""
 
 def main(fill_column=70):
     import bibtexparser,shutil,os,re,glob,stat
     from lit_update import get_annotations,col_wrap
     import numpy as np
     import pandas as pd
+    from lit_add import paper_dir,org_format
 
-    global mend_path,bib_path,paper_dir,org_format
+    global mend_path,bib_path
     
     if paper_dir[-1]=='/':
         paper_dir=paper_dir[:-1]
+        
+    if os.path.isfile(paper_dir+'/literature.org') or os.path.isfile(paper_dir+'/literature.bib'):
+        raise Exception('Master org or bib file already exists in %s, remove before continuing!'%paper_dir)
     
     df,notes = parse_mend_db(mend_path)
     
     with open(bib_path) as f:
-        bib_db = bibtexparser.loads(f.read())
+        bib_db = bibtexparser.load(f)
 
     for bib in bib_db.entries:
         bib_id = bib['ID']
@@ -65,12 +48,10 @@ def main(fill_column=70):
         if os.path.isfile(annot_path):
             print("Found annotated file")
             shutil.copyfile(annot_path,new_path)
-            # os.renames(annot_path,new_path)
             annotations = "\n"+get_annotations(annot_path,note_format='org',org_indent=re.search('Annotations\n( *){annotations}',org_format).groups()[0],fill_column=fill_column)
         else:
             print("No annotated file found")
             shutil.copyfile(old_path,new_path)
-            # os.renames(old_path,new_path)
             annotations=""
         #Don't want any spaces in the tags. 
         #Also want to iterate through tags and folder if they're lists, not if they're empty
@@ -89,6 +70,7 @@ def main(fill_column=70):
         tmp = mend_entry["headers"]
         headers = ""
         if tmp is not np.nan:
+            print('Found header notes')
             tmp = tmp.split("\n  \n")
             for idx,t in enumerate(tmp):
                 t = re.subn(" *\n *","\n",t)[0].replace("\n"," ")
@@ -111,6 +93,7 @@ def main(fill_column=70):
             bibtexparser.dump(bib_save,f)
         with open(os.path.expanduser(org_path),'w') as f:
             f.write(org_file)
+        print('Saved into directory %s/%s'%(paper_dir,bib_id))
         print('')
 
     master_org_text=""
@@ -123,11 +106,13 @@ def main(fill_column=70):
         f.write(master_org_text)
         
     master_bib_text=""
-    for bib_file in glob.glob(paper_dir+'/*/*.bib'):
+    #Want to go through bib files in alphabetical order too
+    for bib_file in sorted(glob.glob(paper_dir+'/*/*.bib')):
         with open(bib_file) as f:
             master_bib_text += f.read()
     with open(paper_dir+'/literature.bib','w') as f:
-        f.write(master_bib_text)        
+        f.write(master_bib_text)
+        
     #We want these files to be read-only so that the only edits are to
     #the individual org and bib files. If this is too inconvenient,
     #may end up changing it.

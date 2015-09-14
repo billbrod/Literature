@@ -1,0 +1,120 @@
+* Requirements
+** Python
+
+   - bibtexparser
+   - pandas
+   - sqlite3
+   - numpy
+     
+** System
+   
+   All these can be done through apt-get
+   
+   - poppler-data
+   - poppler-utils
+   - python-poppler
+     
+* Set-up
+
+  Clone this directory somewhere in your machine and set the global
+  variables at the top of mendeley_to_org and lit_add.py
+  
+  Additionally, if you want to use emacs (see [[*Set-up in Emacs][Set-up in Emacs]]), you
+  will need to change the paths in literature.el
+  
+  To export from mendeley to org, you will need to have a copy of
+  Mendeley database (which can be found by pressing Ctrl+Shift+D in
+  Mendeley, see [[http://support.mendeley.com/customer/portal/articles/227951-how-do-i-locate-mendeley-desktop-database-files-on-my-computer-][here]] for details) and a bibtex file (exported from
+  Mendeley, select all files and press Ctrl+e) with all the files you
+  want to move over. It's recommended that you use a copy of your
+  Mendeley database, not the original. Only the files contained within
+  your bibtex file will be moved, so if you want to test this, don't
+  include all files in it.
+
+  Finally, if you want to save your annotations and use the annotated
+  versions of your pdf, you will need to export those by hand,
+  one-by-one, from Mendeley. Open a pdf, and then File->Export PDF
+  with Annotations..., saving it with the "-annotated" ending (default
+  option for Mendeley, required for mendeley_to_org to find it) into
+  Unsorted within your paper_dir (as set in lit_add.py). As far as I'm
+  aware, Mendeley does not allow for bulk export.
+  
+* Usage
+
+  After following [[*Set-up][set-up]] above, open up ipython and run
+  ~mendeley_to_org.main()~ without any arguments. This should print out
+  updates for each key found in the bibtex file, with what it found
+  and where it ended up saved. This does not, currently remove the
+  file from either the Unsorted directory (if an annotated file was
+  found) or the Mendeley document directory. I do this in case
+  something goes wrong, so it's easier to re-run.
+
+  After this, you should be ready to start reading and editing your
+  pdfs as you wish. Any changes you make to the local pdf, bib, or org
+  files will be reflected in the master ones by running
+  ~lit_update.update()~. 
+
+  If you want to add a new file or entry to your library, run (from
+  the command line) ~python lit_add.py file~, or (from python)
+  ~lit_add.add_pdf(file)~ or ~lit_add.add_bib(file)~ for pdfs and
+  bibtex files, respectively. This will set up the directories,
+  creating a bib file if it can find the information and an org notes
+  file. If you want to add a bib file without an attached file, you
+  can do so (just make sure it doesn't have a file field). If you
+  attempt to add a pdf, lit_add will attempt to extract the doi and
+  retrieve the bib file automatically. If it can't do this, you will
+  need to manually download the bib file, make sure its file field
+  points to the associated pdf, and add that.
+
+
+* Set-up in Emacs
+
+  You'll need helm-bibtex and helm to make the most of this. Though if
+  you don't want to, it's not necessary. The Python scripts will work
+  fine by themselves.
+  
+  If you do want to use this with emacs, set all the paths in
+  literature.el.
+
+  Add the line ~(load-file "path/to/literature.el")~ to your emacs init
+  file.
+
+  The following must be added to your eshell aliases file: ~alias litadd
+  literature-add \$1~, or you can run ~alias litadd 'literature-add
+  \$1'~. The escapes may not be necessary, so try with and without. You
+  should only need to do this once, and it will be saved thereafter.
+
+  Then, using helm-find-files (not necessarily bound to ~C-x C-f~! Check
+  that it is), typing ~M-!~ and selecting ~litadd~ will run lit_add.py
+  on the highlighted file.
+
+  Unfortunately, looks like the input gets immediately removed, so
+  you'll need to head to ~*Messages*~ buffer to view the results of it.
+
+* Acknowledgments
+
+  I spent a lot of time reading around on the internet before deciding
+  how best to do this. As for as I could find, no one had specifically
+  moved from Mendeley to using org mode for reference management, so I
+  used a lot of things piece-meal.
+
+  Obviously, for the emacs setup, I use [[https://emacs-helm.github.io/helm/][helm]] and [[https://github.com/tmalsburg/helm-bibtex][helm-bibtex]] directly,
+  both of which are wonderful packages. I also use [[https://github.com/politza/pdf-tools][pdf-tools]] for
+  editing pdfs in emacs, which is a great package as well.
+
+  I first came across the idea of using org-mode and emacs as
+  reference management in a blog post [[https://tincman.wordpress.com/2011/01/04/research-paper-management-with-emacs-org-mode-and-reftex/][here]], which has been linked to
+  several times by people doing related projects. The main inspiration
+  for my organization is a post by [[http://blog.nguyenvq.com/blog/2011/07/24/research-paper-management-or-library-with-emacs/][Vinh Nguyen]]. For getting
+  annotations out of pdfs in Python, I based my code on [[http://coda.caseykuhlman.com/entries/2014/pdf-extract.html?utm_source=feedburner&utm_medium=feed&utm_campaign=Feed%253A+caseykuhlman%252Fcoda+%2528The+Legal+Coda%2529][two]] [[http://socialdatablog.com/extract-pdf-annotations.html][posts]], and
+  the get_annotations() function comes almost directly from the second
+  of those. Using python to extract Mendeley notes and metadata
+  information came from [[http://www.danielhnyk.cz/blog/view/export-pdf-annotations-mendeley-csv-or-txt][here]], and an idea for the structure for how to
+  export Mendeley information came from the R code found [[https://github.com/rdiaz02/Adios_Mendeley][here]], though
+  the information I took differs from both of them. For obtaining
+  bibtex entries from a doi, I used code from [[https://github.com/jgilchrist/pybib][pybib]] (specifically,
+  pybib/utils.py); I was unable to do what I wanted (get bibtex
+  information from inside a python function) with the installed
+  version of pybib, so I just copied the relevant parts of code.
+
+  
