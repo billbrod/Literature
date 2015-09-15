@@ -6,7 +6,7 @@
 #sub-directory (the bibtex key will be its name), and mendeley_to_org
 #will look for the directory Unsorted within this directory for
 #previously annotated files.
-paper_dir = "/home/billbrod/Dropbox/Docs/Papers"
+paper_dir = "~/Dropbox/Docs/Papers"
 
 #How you want your org note formatted. I haven't played around with
 #this too much, so it probably isn't very robust. If you want to add
@@ -267,6 +267,7 @@ def master_org_add(bib_path):
     
 if __name__ == '__main__':
     import sys,os,lit_update
+    paper_dir = os.path.expanduser(paper_dir)
     if os.path.splitext(sys.argv[1])[1] == '.bib':
         add_bib(sys.argv[1])
     elif os.path.splitext(sys.argv[1])[1] == '.pdf':

@@ -12,6 +12,8 @@ def main(fill_column=70):
     import numpy as np
     import pandas as pd
     from lit_add import paper_dir,org_format
+    
+    paper_dir = os.path.expanduser(paper_dir)
 
     global mend_path,bib_path
     
