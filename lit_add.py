@@ -235,6 +235,7 @@ def master_bib_add(bib):
     
 def master_org_add(bib_path):
     import re,os,stat
+    from lit_update import key_get
     
     org_path = os.path.splitext(bib_path)[0]+'.org'
 
@@ -247,17 +248,17 @@ def master_org_add(bib_path):
     #Splits into org todo keywords and entries
     #First entry is '', so we drop it.
     master_org = re.split('^[*] ([A-Z]+)',master_org,flags=re.MULTILINE)[1:]
-    master_org = [(i,j) for i,j in zip(master_org[::2],master_org[1::2])]
+    master_org = [(i,j,key_get(j)) for i,j in zip(master_org[::2],master_org[1::2])]
 
     with open(os.path.expanduser(org_path)) as f:
         new_org = f.read().decode('utf8')+'\n\n'
-    new_org = new_org[new_org.find('*'):]    
+    new_org = new_org[new_org.find('*'):]
     new_org = re.split('^[*] ([A-Z]+)',new_org,flags=re.MULTILINE)[1:]
-    new_org = [(new_org[0],new_org[1])]
+    new_org = [(new_org[0],new_org[1],key_get(new_org[1]))]
     
     master_org+=new_org
-    master_org.sort(key=lambda x: re.findall('.*:BIBTEX-KEY: ([a-zA-z0-9]*) *\n',x[1],flags=re.DOTALL))
-    master_org = '* '.join(['']+[i+j for i,j in master_org])
+    master_org.sort(key=lambda x: x[2].lower())
+    master_org = '* '.join(['']+[i+j for i,j,k in master_org])
 
     with open(paper_dir+'/literature.org','w') as f:
         f.write(master_org.encode('utf8'))

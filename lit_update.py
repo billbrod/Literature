@@ -57,8 +57,8 @@ def update(fill_column=70):
             with open('%s/%s.org'%(dir_path,bib_id),'r+') as f:
                 org_note = f.read().decode('utf8')
             org_hdr = org_note[:org_note.find('*')]
-            org_note = re.split('^([*]+) (.*)',org_note,flags=re.MULTILINE)[1:]
-            org_note = [(hdr_lvl,title,txt_body) for hdr_lvl,title,txt_body in zip(org_note[::3],org_note[1::3],org_note[2::3])]
+            org_note = re.split('^([*]+ )(.*)',org_note,flags=re.MULTILINE)[1:]
+            org_note = [[hdr_lvl,title,txt_body] for hdr_lvl,title,txt_body in zip(org_note[::3],org_note[1::3],org_note[2::3])]
             annotation_idx = [title.strip() for hdr_lvl,title,txt_body in org_note].index('Annotations')
             org_note[annotation_idx][2] = "\n\n"+annots+"\n\n"
             org_note = org_hdr+''.join([i+j+k for i,j,k in org_note])
@@ -86,6 +86,8 @@ def update(fill_column=70):
         master_bib_str = bibtexparser.dumps(master_bib)
         f.write(master_bib_str.encode('utf8'))
         
+    
+    master_org.sort(key=lambda x:x[2].lower())
     master_org = '* '.join(['']+[i+j for i,j,k in master_org])
     with open(paper_dir+'/literature.org','w') as f:
         f.write(master_org.encode('utf8'))
@@ -142,6 +144,49 @@ def get_annotations(path,note_format='plain',org_indent='   ',fill_column=70):
                     notes=notes+'%s%s\n\n'%(org_indent,j)                    
         return notes
 
+#If you're concerned that your master bib or org files are just out of
+#date, you can use this (with the appropriate flags) to force re-write
+#them entirely. Or if you accidentally delete your master file.
+def force_renew(fill_column=70,org_flag=False,bib_flag=False):
+    import glob,os,stat
+    from lit_add import paper_dir
+    if org_flag:
+        if os.path.isfile(paper_dir+'/literature.org'):
+            continue_choice=raw_input('Master org file exists, continue? [y/n] ').lower()
+            if continue_choice == 'y':
+                os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)
+                os.rename(paper_dir+'/literature.org',paper_dir+'/literature.backup.org')
+        if continue_choice == 'y':
+            master_org_text = "#+STARTUP: showeverything\n"
+            org_glob = glob.glob(paper_dir+'/*/*.org')
+            org_glob.sort(key=lambda x:x.lower())
+            for org_file in org_glob:
+                with open(org_file) as f:
+                    tmp = f.read().decode('utf8')
+                master_org_text+="\n".join(tmp.split("\n")[1:])+"\n\n"
+            with open(paper_dir+'/literature.org','w') as f:
+                f.write(master_org_text.encode('utf8'))        
+            os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
+    if bib_flag:
+        if os.path.isfile(paper_dir+'/literature.bib'):
+            continue_choice=raw_input('Master bibfile exists, continue? [y/n] ').lower()
+            if continue_choice == 'y':
+                os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
+                os.rename(paper_dir+'/literature.bib',paper_dir+'/literature.backup.bib')
+        if continue_choice == 'y':
+            master_bib_text=""
+            #Want to go through bib files in alphabetical order too
+            bib_glob = glob.glob(paper_dir+'/*/*.bib')
+            bib_glob.sort(key=lambda x:x.lower())
+            for bib_file in bib_glob:
+                with open(bib_file) as f:
+                    master_bib_text += f.read().decode('utf8')
+            with open(paper_dir+'/literature.bib','w') as f:
+                f.write(master_bib_text.encode('utf8'))
+            os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
+
+        
+    
 def col_wrap(text,fill_col,org_indent=''):
     text = text.split(' ')
     length = 0

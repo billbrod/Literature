@@ -118,22 +118,29 @@ def main(fill_column=70):
         print('Saved into directory %s/%s'%(paper_dir,bib_id))
         print('')
 
-    master_org_text=""
+    #For some reason, showeverything STARTUP option makes things much
+    #faster (see
+    #http://www.wisdomandwonder.com/article/9567/how-to-handle-and-large-slow-org-files)
+    master_org_text="#+STARTUP: showeverything\n"
     #Want to go through org files in alphabetical order
-    for org_file in sorted(glob.glob(paper_dir+'/*/*.org')):
+    org_glob = glob.glob(paper_dir+'/*/*.org')
+    org_glob.sort(key=lambda x:x.lower())
+    for org_file in org_glob:
         with open(org_file) as f:
-            tmp = f.read()
+            tmp = f.read().decode('utf8')
         master_org_text+="\n".join(tmp.split("\n")[1:])+"\n\n"
     with open(paper_dir+'/literature.org','w') as f:
-        f.write(master_org_text)
+        f.write(master_org_text.encode('utf8'))
         
     master_bib_text=""
     #Want to go through bib files in alphabetical order too
-    for bib_file in sorted(glob.glob(paper_dir+'/*/*.bib')):
+    bib_glob = glob.glob(paper_dir+'/*/*.bib')
+    bib_glob.sort(key=lambda x:x.lower())
+    for bib_file in bib_glob:
         with open(bib_file) as f:
-            master_bib_text += f.read()
+            master_bib_text += f.read().decode('utf8')
     with open(paper_dir+'/literature.bib','w') as f:
-        f.write(master_bib_text)
+        f.write(master_bib_text.encode('utf8'))
         
     #We want these files to be read-only so that the only edits are to
     #the individual org and bib files. If this is too inconvenient,
