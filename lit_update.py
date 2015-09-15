@@ -16,6 +16,8 @@ def update(fill_column=70):
     import os,stat,bibtexparser,time,re,shutil
     from lit_add import paper_dir,org_format
     
+    paper_dir = os.path.expanduser(paper_dir)
+    
     #Make it so we can write again...
     os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
     os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)

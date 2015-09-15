@@ -20,7 +20,10 @@
   variables at the top of mendeley_to_org and lit_add.py
   
   Additionally, if you want to use emacs (see [[*Set-up in Emacs][Set-up in Emacs]]), you
-  will need to change the paths in literature.el
+  will need to change the paths in literature.el. You may need to
+  change the python call to where your python, depending on your
+  python setup (if you use anaconda, you'll likely have to change it
+  from =python= to =~/anaconda/bin/python=)
   
   To export from mendeley to org, you will need to have a copy of
   Mendeley database (which can be found by pressing Ctrl+Shift+D in

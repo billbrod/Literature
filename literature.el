@@ -3,7 +3,7 @@
 (defun literature-update ()
   "Updates the master literature bib and org files"
   (interactive)
-  (shell-command "python ~/Documents/Literature/lit_update.py"))
+  (shell-command "/home/bill/anaconda/bin/python ~/Documents/Literature/lit_update.py"))
 (global-set-key (kbd "s-u") 'literature-update)
 (add-hook 'kill-emacs-hook 'literature-update)
 
@@ -14,7 +14,7 @@
 
 (defun eshell/literature-add (&rest args)
   "Adds a new item to the library"
-  (let ((cmd (concat "python ~/Documents/Literature/lit_add.py " (pop args))))
+  (let ((cmd (concat "/home/bill/anaconda/bin/python ~/Documents/Literature/lit_add.py " (pop args))))
     (shell-command cmd)))
 
 ;;Helm-bibtex configuration options
@@ -43,6 +43,9 @@
     (print (car test-list))
     (print (helm-bibtex-candidates))
     (setq test-list (cdr test-list))))
+
+;;This uses the system default to open the pdf
+(setq helm-bibtex-pdf-open-function 'helm-open-file-with-default-tool)
 
 ;Need to eval after load so our custom function is the one that
 ;helm-bibtex uses. These two shouldn't need to be edited at all
