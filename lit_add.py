@@ -6,12 +6,12 @@
 #sub-directory (the bibtex key will be its name), and mendeley_to_org
 #will look for the directory Unsorted within this directory for
 #previously annotated files.
-paper_dir = "/home/billbrod/Documents/Paper-annot"
+paper_dir = "/home/billbrod/Dropbox/Docs/Papers"
 
 #How you want your org note formatted. I haven't played around with
 #this too much, so it probably isn't very robust. If you want to add
 #or remove fields, that's on you.
-org_format="""#+STARTUP: showall
+org_format=u"""#+STARTUP: showall
 * {todo} {title} \t\t\t\t\t {tags}
    :PROPERTIES:
    :ADDED: [{date}]
@@ -65,7 +65,8 @@ def add_pdf(pdf_path):
     bib['ID'] = bib['ID'].replace('_','')
 
     with open(paper_dir+'/literature.bib') as f:
-        master_bib = bibtexparser.load(f)
+        bib_str = f.read().decode('utf8')
+        master_bib = bibtexparser.loads(bib_str)
 
     if bib['ID'] in master_bib.entries_dict:
         print 'File with bib id %s already in master bib file, skipping'%bib['ID']
@@ -83,10 +84,12 @@ def add_bib(bib_path):
     bib_path = os.path.abspath(bib_path)
 
     with open(bib_path) as f:
-        bib_db = bibtexparser.load(f)
+        bib_str = f.read().decode('utf8')
+        bib_db = bibtexparser.loads(bib_str)
         
     with open(paper_dir+'/literature.bib') as f:
-        master_bib = bibtexparser.load(f)
+        bib_str = f.read().decode('utf8')
+        master_bib = bibtexparser.loads(bib_str)
         
     for bib in bib_db.entries:
         if bib['ID'] in master_bib.entries_dict:
@@ -95,15 +98,15 @@ def add_bib(bib_path):
         try:
             if os.path.isfile(os.path.expanduser(bib['file'])):
                 print 'File %s found for bib %s from %s'%(bib['file'],bib['ID'],bib_path)
-                pdf_path = bib['file']
-                if '~' in pdf_path:
-                    pdf_path = os.path.expanduser(pdf_path)
-                bib_save,bib_path = setup_folders_withfile(pdf_path,bib)
+                file_path = bib['file']
+                if '~' in file_path:
+                    file_path = os.path.expanduser(file_path)
+                bib_save,bib_path = setup_folders_withfile(file_path,bib)
             else:
                 print 'File %s for bib %s from %s not found!'%(bib['file'],bib['ID'],bib_path)
                 bib.pop('file')
                 bib_save,bib_path = setup_folders_nofile(bib)
-        except KeyError:
+        except KeyError as e:
             print 'No file field found in bib %s from %s'%(bib['ID'],bib_path)
             bib_save,bib_path = setup_folders_nofile(bib)
         master_org_add(bib_path)
@@ -123,17 +126,17 @@ def setup_folders_nofile(bib):
     for tmp_path in ['org_path','bib_path']:
         exec(tmp_path+" = "+tmp_path+".replace(os.path.expanduser('~'),'~')")
         
-    if bib['ENTRYTYPE']=='article':
-        pub = bib['journal']
-    elif bib['ENTRYTYPE']=='misc':
-        pub = bib['organization']
-    elif bib['ENTRYTYPE']=='book':
-        try:
+    try:
+        if bib['ENTRYTYPE']=='article':
+            pub = bib['journal']
+        elif bib['ENTRYTYPE']=='misc':
+            pub = bib['organization']
+        elif bib['ENTRYTYPE']=='book':
             pub = bib['publisher']
-        except KeyError:
-            pub = ''
-    else:
-        pub = ''
+        else:
+            pub = u''
+    except KeyError:
+        pub = u''
         
     org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d"),annotations='',notes='',pdf_path='',bib_path=bib_path,todo='TODO',org_path=org_path,kws='',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
     
@@ -142,43 +145,50 @@ def setup_folders_nofile(bib):
     
     #expanduser is necessary because python does not like the
     #tilde; we need to expand it to get a path it can use.
-    with open(os.path.expanduser(bib_path),'w') as f:
-        bibtexparser.dump(bib_save,f)
-    with open(os.path.expanduser(org_path),'w') as f:
-        f.write(org_file)
+    if not os.path.isfile(os.path.expanduser(bib_path)):
+        with open(os.path.expanduser(bib_path),'w') as f:
+            bib_str = bibtexparser.dumps(bib_save)
+            f.write(bib_str.encode('utf8'))
+    else:
+        print('Found a bib file at %s, not saving new one'%bib_path)
+    if not os.path.isfile(os.path.expanduser(org_path)):
+        with open(os.path.expanduser(org_path),'w') as f:
+            f.write(org_file.encode('utf8'))
+    else:
+        print('Found an org file at %s, not saving new one'%org_path)
 
     print('Added entry (no file) for bib_id %s, check its folder to make sure everything looks like you want it to'%bib['ID'])        
     
     return bib_save,bib_path
         
-def setup_folders_withfile(pdf_path,bib):
+def setup_folders_withfile(file_path,bib):
     import bibtexparser,os,time
     
-    new_path = paper_dir+'/{bib_id}/{bib_id}.pdf'.format(bib_id=bib['ID'])
+    new_path = paper_dir+'/{bib_id}/{bib_id}{extension}'.format(bib_id=bib['ID'],extension=os.path.splitext(file_path)[1])
     bib_path = os.path.splitext(new_path)[0]+'.bib'
     org_path = os.path.splitext(new_path)[0]+'.org'
 
-    os.renames(pdf_path,new_path)
+    os.renames(file_path,new_path)
     
     #This allows us to replace the home directory with a tilde,
     #since I'll be using this across computers. Org can handle the
     #tilde without any problem, so it's alright
     for tmp_path in ['new_path','org_path','bib_path']:
         exec(tmp_path+" = "+tmp_path+".replace(os.path.expanduser('~'),'~')")
-        
-    if bib['ENTRYTYPE']=='article':
-        pub = bib['journal']
-    elif bib['ENTRYTYPE']=='misc':
-        pub = bib['organization']
-    elif bib['ENTRYTYPE']=='book':
-        try:
+
+    try:
+        if bib['ENTRYTYPE']=='article':
+            pub = bib['journal']
+        elif bib['ENTRYTYPE']=='misc':
+            pub = bib['organization']
+        elif bib['ENTRYTYPE']=='book':
             pub = bib['publisher']
-        except KeyError:
-            pub = ''
-    else:
-        pub = ''
-        
-    org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d"),annotations='',notes='',pdf_path=new_path,bib_path=bib_path,todo='TODO',org_path=org_path,kws='',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
+        else:
+            pub = u''
+    except KeyError:
+        pub = u''
+    
+    org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d").encode('utf8'),annotations=u'',notes=u'',pdf_path=new_path.encode('utf8'),bib_path=bib_path.encode('utf8'),todo=u'TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
     
     bib['file'] = new_path
     bib_save = bibtexparser.bibdatabase.BibDatabase()
@@ -186,10 +196,17 @@ def setup_folders_withfile(pdf_path,bib):
     
     #expanduser is necessary because python does not like the
     #tilde; we need to expand it to get a path it can use.
-    with open(os.path.expanduser(bib_path),'w') as f:
-        bibtexparser.dump(bib_save,f)
-    with open(os.path.expanduser(org_path),'w') as f:
-        f.write(org_file)
+    if not os.path.isfile(os.path.expanduser(bib_path)):    
+        with open(os.path.expanduser(bib_path),'w') as f:
+            bib_str = bibtexparser.dumps(bib_save)
+            f.write(bib_str.encode('utf8'))
+    else:
+        print('Found a bib file at %s, not saving new one'%bib_path)
+    if not os.path.isfile(os.path.expanduser(org_path)):            
+        with open(os.path.expanduser(org_path),'w') as f:
+            f.write(org_file.encode('utf8'))
+    else:
+        print('Found an org file at %s, not saving new one'%org_path)
 
     print('Added entry (with file) for bib_id %s, check its folder to make sure everything looks like you want it to'%bib['ID'])
     
@@ -201,9 +218,9 @@ def master_bib_add(bib):
     os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
     
     with open(paper_dir+'/literature.bib') as f:
-        master_bib_str = f.read()
+        master_bib_str = f.read().decode('utf8')
         
-    master_bib_str += str(bibtexparser.dumps(bib))
+    master_bib_str += bibtexparser.dumps(bib)
     master_bib = bibtexparser.loads(master_bib_str)
     
     #bibtexparser.dumps automatically sorts by bib id. I have to get
@@ -225,7 +242,7 @@ def master_org_add(bib_path):
     
     #Add new org to master org, sort by keys
     with open(paper_dir+'/literature.org') as f:
-        master_org = f.read()
+        master_org = f.read().decode('utf8')
         
     #Splits into org todo keywords and entries
     #First entry is '', so we drop it.
@@ -233,7 +250,7 @@ def master_org_add(bib_path):
     master_org = [(i,j) for i,j in zip(master_org[::2],master_org[1::2])]
 
     with open(os.path.expanduser(org_path)) as f:
-        new_org = f.read()+'\n\n'
+        new_org = f.read().decode('utf8')+'\n\n'
     new_org = new_org[new_org.find('*'):]    
     new_org = re.split('^[*] ([A-Z]+)',new_org,flags=re.MULTILINE)[1:]
     new_org = [(new_org[0],new_org[1])]
@@ -243,7 +260,7 @@ def master_org_add(bib_path):
     master_org = '* '.join(['']+[i+j for i,j in master_org])
 
     with open(paper_dir+'/literature.org','w') as f:
-        f.write(master_org)
+        f.write(master_org.encode('utf8'))
 
     os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
 

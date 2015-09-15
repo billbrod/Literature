@@ -1,8 +1,8 @@
 #Absolute to your mendeley database. Recommended that you make a backup copy
-mend_path = "/home/billbrod/Documents/Paper-annot/mend.sqlite"
+mend_path = "/home/billbrod/Documents/mend.sqlite"
 
 #Absolute path to bib file exported by Mendeley.
-bib_path = "/home/billbrod/Documents/Paper-annot/bibliography.bib"
+bib_path = "/home/billbrod/Documents/bibliography.bib"
 
 
 
@@ -37,13 +37,19 @@ def main(fill_column=70):
         assert not mend_entry.empty,'No entry found for id %s or title %s'%(bib_id,bib['title'])
         #Necessary to make this a Series, which behaves nicer
         mend_entry = mend_entry.squeeze()
+        if type(mend_entry) == pd.DataFrame:
+            raise Exception("You've got multiple entries with the same key (%s) or title (%s)! Can't deal with that!"%(bib_id,bib['title']))
         #Need to change path to get the actual one
-        old_path = bib['file'].replace(":home","/home").replace(':pdf','')
-        annot_path = paper_dir+'/Unsorted/'+os.path.splitext(os.path.basename(old_path))[0]+'-annotated.pdf'
-        new_path = paper_dir+'/{bib_id}/{bib_id}.pdf'.format(bib_id=bib_id)
+        old_path = bib['file'].replace(":home","/home").split(":")[0]
+        annot_path = paper_dir+'/Unsorted/'+os.path.splitext(os.path.basename(old_path))[0]+'-annotated%s'%os.path.splitext(old_path)[1]
+        new_path = paper_dir+'/{bib_id}/{bib_id}{extension}'.format(bib_id=bib_id,extension=os.path.splitext(old_path)[1])
         bib_new_path = os.path.splitext(new_path)[0]+'.bib'
         org_path = os.path.splitext(new_path)[0]+'.org'
-        os.makedirs(os.path.split(new_path)[0])
+        try:
+            os.makedirs(os.path.split(new_path)[0])
+        except OSError as e:
+            print('Output folder already exists, probably means that you have duplicate keys (%s) or you\'ve run this before and haven\'t cleared out the old run!'%bib_id)
+            raise e
         print('Checking for annotated file at %s'%annot_path)
         if os.path.isfile(annot_path):
             print("Found annotated file")
@@ -77,13 +83,29 @@ def main(fill_column=70):
                 tmp[idx] = col_wrap(t,fill_column)
             headers = "\n\n".join(tmp)
             headers = headers.replace("\n","\n%s"%re.search('Notes\n( *){notes}',org_format).groups()[0])
+        try:
+            author = bib['author']
+        except KeyError:
+            author = ''
+        try:
+            pub = mend_entry['publication']
+        except KeyError:
+            pub = ''
+        try:
+            year = mend_entry['year']
+        except:
+            year = ''
         print "Read? %s"%mend_entry["read"]
+        try:
+            date_added = mend_entry['date_added']
+        except:
+            date_added = 'unknown'
         #This allows us to replace the home directory with a tilde,
         #since I'll be using this across computers. Org can handle the
         #tilde without any problem, so it's alright
         for tmp_path in ['new_path','org_path','bib_new_path']:
             exec(tmp_path+" = "+tmp_path+".replace(os.path.expanduser('~'),'~')")
-        org_file = org_format.format(title=bib['title'],tags=tags,date=mend_entry['date_added'],annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["read"]),org_path=org_path,kws=keywords,authors=bib['author'],year=mend_entry['year'],publication=mend_entry['publication'],key=bib_id)
+        org_file = org_format.format(title=bib['title'],tags=tags,date=date_added,annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["read"]),org_path=org_path,kws=keywords,authors=author,year=year,publication=pub,key=bib_id)
         bib['file'] = new_path
         bib_save = bibtexparser.bibdatabase.BibDatabase()
         bib_save.entries = [bib]

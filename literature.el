@@ -3,7 +3,7 @@
 (defun literature-update ()
   "Updates the master literature bib and org files"
   (interactive)
-  (shell-command "python ~/Documents/Paper-annot/Literature/lit_update.py"))
+  (shell-command "python ~/Documents/Literature/lit_update.py"))
 (global-set-key (kbd "s-u") 'literature-update)
 (add-hook 'kill-emacs-hook 'literature-update)
 
@@ -14,17 +14,35 @@
 
 (defun eshell/literature-add (&rest args)
   "Adds a new item to the library"
-  (let ((cmd (concat "python ~/Documents/Paper-annot/Literature/lit_add.py " (pop args))))
+  (let ((cmd (concat "python ~/Documents/Literature/lit_add.py " (pop args))))
     (shell-command cmd)))
 
 ;;Helm-bibtex configuration options
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
-(setq helm-bibtex-bibliography '("~/Documents/Paper-annot/literature.bib"))
+(setq helm-bibtex-bibliography "~/Dropbox/Docs/Papers/literature.bib")
 ;;Should be the same as paper_dir from lit_add.py
-(setq helm-bibtex-library-path '("~/Documents/Paper-annot/"))
+(setq helm-bibtex-library-path "~/Dropbox/Docs/Papers/")
 ;;Should be the same as paper_dir from lit_add.py
-(setq helm-bibtex-notes-path "~/Documents/Paper-annot/")
+(setq helm-bibtex-notes-path "~/Dropbox/Docs/Papers/")
 (setq helm-bibtex-notes-extension ".org")
+(setq helm-bibtex-additional-search-fields '(journal))
+
+;;This is a function to test your bib files in case something's the
+;;matter with your library and helm-bibtex. I ran into an error where
+;;helm-bibtex would not display my library but also returned no
+;;errors. Evaluating helm-bibtex-candidates returned a parentheses
+;;unbalanced error, but I wasn't sure where it was. This loops through
+;;all bib files (may have to update your path) and tests each one. It
+;;will fail when there's a problem, so you can go and look at it
+;;specifically. For me, it was a non-standard parentheses (appeared
+;;too large) which was causing the issue.
+(defun test-bib-files ()
+  (setq test-list (f-glob "~/Dropbox/Docs/Papers/*/*.bib"))
+  (while test-list
+    (setq helm-bibtex-bibliography (car test-list))
+    (print (car test-list))
+    (print (helm-bibtex-candidates))
+    (setq test-list (cdr test-list))))
 
 ;Need to eval after load so our custom function is the one that
 ;helm-bibtex uses. These two shouldn't need to be edited at all

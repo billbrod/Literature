@@ -24,9 +24,10 @@
   
   To export from mendeley to org, you will need to have a copy of
   Mendeley database (which can be found by pressing Ctrl+Shift+D in
-  Mendeley, see [[http://support.mendeley.com/customer/portal/articles/227951-how-do-i-locate-mendeley-desktop-database-files-on-my-computer-][here]] for details) and a bibtex file (exported from
-  Mendeley, select all files and press Ctrl+e) with all the files you
-  want to move over. It's recommended that you use a copy of your
+  Mendeley, see [[http://support.mendeley.com/customer/portal/articles/227951-how-do-i-locate-mendeley-desktop-database-files-on-my-computer-][here]] for details -- make sure your trash is empty
+  first and you have no duplicate keys) and a bibtex file (exported
+  from Mendeley, select all files and press Ctrl+e) with all the files
+  you want to move over. It's recommended that you use a copy of your
   Mendeley database, not the original. Only the files contained within
   your bibtex file will be moved, so if you want to test this, don't
   include all files in it.
@@ -38,6 +39,12 @@
   option for Mendeley, required for mendeley_to_org to find it) into
   Unsorted within your paper_dir (as set in lit_add.py). As far as I'm
   aware, Mendeley does not allow for bulk export.
+
+  *NOTE*: This should just take the bibtex key that you had it saved
+  with in Mendeley, but I assume all keys are "AuthorYear"; new keys
+  are created as such in lit_add.py and that's the assumption
+  everywhere, so if you want to use a different key format, this might
+  not work.
   
 * Usage
 
