@@ -3,7 +3,7 @@
 (defun literature-update ()
   "Updates the master literature bib and org files"
   (interactive)
-  (shell-command "/home/bill/anaconda/bin/python ~/Documents/Literature/lit_update.py"))
+  (shell-command "python ~/Documents/Literature/lit_update.py"))
 (global-set-key (kbd "s-u") 'literature-update)
 (add-hook 'kill-emacs-hook 'literature-update)
 
@@ -14,7 +14,7 @@
 
 (defun eshell/literature-add (&rest args)
   "Adds a new item to the library"
-  (let ((cmd (concat "/home/bill/anaconda/bin/python ~/Documents/Literature/lit_add.py " (pop args))))
+  (let ((cmd (concat "python ~/Documents/Literature/lit_add.py " (pop args))))
     (shell-command cmd)))
 
 ;;Helm-bibtex configuration options
@@ -26,6 +26,29 @@
 (setq helm-bibtex-notes-path "~/Dropbox/Docs/Papers/")
 (setq helm-bibtex-notes-extension ".org")
 (setq helm-bibtex-additional-search-fields '(journal))
+
+(setq reftex-default-bibliography '("~/Dropbox/Docs/Papers/literature.bib"))
+
+;; see org-ref for use of these variables
+(setq org-ref-bibliography-notes "~/Dropbox/Docs/Papers/literature.org"
+      org-ref-default-bibliography '("~/Dropbox/Docs/Papers/literature.bib")
+      org-ref-pdf-directory "~/Dropbox/Docs/Papers/")
+
+(global-set-key [f10] 'org-ref-open-bibtex-notes)
+(global-set-key [f11] 'org-ref-open-bibtex-pdf)
+(global-set-key [f12] 'org-ref-open-in-browser)
+
+;; make sure you have dash, helm, helm-bibtex, ebib, s, f, hydra and key-chord
+;; in your load-path
+(require 'org-ref)
+(require 'doi-utils)
+(setq jmax-bibtex-hydra-key-binding "\C-cj")
+(require 'jmax-bibtex)
+(require 'pubmed)
+(require 'arxiv)
+(require 'sci-id)
+(require 'isbn)
+(require 'x2bib)
 
 ;;This is a function to test your bib files in case something's the
 ;;matter with your library and helm-bibtex. I ran into an error where
@@ -45,7 +68,7 @@
     (setq test-list (cdr test-list))))
 
 ;;This uses the system default to open the pdf
-(setq helm-bibtex-pdf-open-function 'helm-open-file-with-default-tool)
+;; (setq helm-bibtex-pdf-open-function 'helm-open-file-with-default-tool)
 
 ;Need to eval after load so our custom function is the one that
 ;helm-bibtex uses. These two shouldn't need to be edited at all
@@ -86,3 +109,41 @@ a PDF whose path is \"KEY/KEY.pdf\".  Returns the first matching PDF."
 			    'helm-bibtex-apa-get-value
 			    (helm-bibtex-get-entry key)))
 	  (goto-char (- (point) 1))))))
+
+(setq org-ref-get-pdf-filename-function 'helm-bibtex-find-pdf)
+
+;;Custom function to open the individual notes file
+(add-to-list 'org-ref-helm-user-candidates
+	     '("Open individual notes file" . (lambda ()
+						(helm-bibtex-edit-notes (car (org-ref-get-bibtex-key-and-file))))))
+
+;;Custom version of the open bibtex notes file, since I call the field BIBTEX-KEY instead of Custom_ID
+(eval-after-load 'org-ref
+  '(defun org-ref-open-bibtex-notes ()
+     "From a bibtex entry, open the master org file and finds the
+notes. Modified function from org-ref.el"
+     (interactive)
+
+     (bibtex-beginning-of-entry)
+     (let* ((cb (current-buffer))
+	    (bibtex-expand-strings t)
+	    (entry (cl-loop for (key . value) in (bibtex-parse-entry t)
+			    collect (cons (downcase key) value)))
+	    (key (reftex-get-bib-field "=key=" entry)))
+
+       ;; save key to clipboard to make saving pdf later easier by pasting.
+       (with-temp-buffer
+	 (insert key)
+	 (kill-ring-save (point-min) (point-max)))
+
+       ;; now look for entry in the notes file
+       (if  org-ref-bibliography-notes
+	   (find-file-other-window org-ref-bibliography-notes)
+	 (error "Org-ref-bib-bibliography-notes is not set to anything"))
+
+       (goto-char (point-min))
+       ;; put new entry in notes if we don't find it.
+       (if (re-search-forward (format ":BIBTEX-KEY: %s$" key) nil 'end)
+	   (funcall org-ref-open-notes-function)
+	 	 
+	 (message "Entry not found")))))

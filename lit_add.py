@@ -58,7 +58,10 @@ def add_pdf(pdf_path):
         doi += re.findall(doi_regex,text)
     #There may be multiple dois in the document, but we assume the one
     #for this document is the one that shows up the most.
-    doi = max(set(doi),key=doi.count)
+    try:
+        doi = max(set(doi),key=doi.count)
+    except ValueError:
+        raise Exception("Unable to find doi in pdf %s, you'll have to manually download bibtex"%pdf_path)
     
     bib = pybib_utils.get_bibtex(doi)
     bib = bibtexparser.loads(bib).entries[0]

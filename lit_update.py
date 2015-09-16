@@ -90,7 +90,7 @@ def update(fill_column=70):
         
     
     master_org.sort(key=lambda x:x[2].lower())
-    master_org = '* '.join(['']+[i+j for i,j,k in master_org])
+    master_org = "#+STARTUP: showeverything\n"+'* '.join(['']+[i+j for i,j,k in master_org])
     with open(paper_dir+'/literature.org','w') as f:
         f.write(master_org.encode('utf8'))
             
