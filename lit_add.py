@@ -266,8 +266,7 @@ def master_org_add(bib_path):
     
     master_org+=new_org
     master_org.sort(key=lambda x: x[2].lower())
-    master_org = '* '.join(['']+[i+j for i,j,k in master_org])
-
+    master_org = "#+STARTUP: showeverything\n"+'* '.join(['']+[i+j for i,j,k in master_org])
     with open(paper_dir+'/literature.org','w') as f:
         f.write(master_org.encode('utf8'))
 
