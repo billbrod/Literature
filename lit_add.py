@@ -63,6 +63,7 @@ def add_pdf(pdf_path):
     except ValueError:
         raise Exception("Unable to find doi in pdf %s, you'll have to manually download bibtex"%pdf_path)
     
+    print('Checking doi %s'%doi)
     bib = pybib_utils.get_bibtex(doi)
     bib = bibtexparser.loads(bib).entries[0]
     bib['ID'] = bib['ID'].replace('_','')
