@@ -192,29 +192,6 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             with open(paper_dir+'/literature.bib','w') as f:
                 f.write(master_bib_text.encode('utf8'))
             os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
-
-#this is a temporary function to replace all absolute paths (with
-#tilde) with relative paths, so we can get this working with android's
-#RefMaster
-def scratch():
-    from lit_add import paper_dir
-    import glob,bibtexparser,os,re
-    
-    for file_name in glob.glob(os.path.expanduser(paper_dir)+'/*/*.org'):
-        with open(file_name) as f:
-            tmp = f.read().decode('utf8')
-        tmp = re.subn('\[\[file:%s/(.*)/(.*)\.(.*)\]\]'%paper_dir,r'[[file:\2.\3]]',tmp)[0]
-        with open(file_name,'w') as f:
-            f.write(tmp.encode('utf8'))
-    for file_name in glob.glob(os.path.expanduser(paper_dir)+'/*/*.bib'):
-        with open(file_name,'r+') as f:
-            tmp = f.read().decode('utf8')
-        tmp = bibtexparser.loads(tmp)
-        if 'file' in tmp.entries[0]:
-            tmp.entries[0]['file'] = re.sub('%s/(.*)/(.*)\.(.*)'%paper_dir,r'\2.\3',tmp.entries[0]['file'])
-        tmp.entries[0]['notefile'] = tmp.entries[0]['ID']+'.org'
-        with open(file_name,'w') as f:
-            f.write(bibtexparser.dumps(tmp).encode('utf8'))
         
 def col_wrap(text,fill_col,org_indent=''):
     text = text.split(' ')
