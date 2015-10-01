@@ -101,6 +101,12 @@
   Unfortunately, looks like the input gets immediately removed, so
   you'll need to head to ~*Messages*~ buffer to view the results of it.
 
+* Android set-up
+  
+  This should work right out of the box with RefMaster; just link it
+  to your dropbox, load in your literature.bib file, and you should be
+  good to go!
+  
 * Acknowledgments
 
   I spent a lot of time reading around on the internet before deciding

@@ -123,16 +123,10 @@ def add_bib(bib_path):
 def setup_folders_nofile(bib):
     import bibtexparser,os,time
     
-    bib_path = paper_dir+'/{bib_id}/{bib_id}.bib'.format(bib_id=bib['ID'])
+    bib_path = '{bib_id}.bib'.format(bib_id=bib['ID'])
     org_path = os.path.splitext(bib_path)[0]+'.org'
     
-    os.makedirs(os.path.split(org_path)[0])
-
-    #This allows us to replace the home directory with a tilde,
-    #since I'll be using this across computers. Org can handle the
-    #tilde without any problem, so it's alright
-    for tmp_path in ['org_path','bib_path']:
-        exec(tmp_path+" = "+tmp_path+".replace(os.path.expanduser('~'),'~')")
+    os.makedirs(paper_dir+'/'+os.path.splitext(org_path)[0])
         
     try:
         if bib['ENTRYTYPE']=='article':
@@ -148,22 +142,21 @@ def setup_folders_nofile(bib):
         
     org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d"),annotations='',notes='',pdf_path='',bib_path=bib_path,todo='TODO',org_path=org_path,kws='',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
     
+    bib['notefile'] = org_path
     bib_save = bibtexparser.bibdatabase.BibDatabase()
     bib_save.entries = [bib]
     
-    #expanduser is necessary because python does not like the
-    #tilde; we need to expand it to get a path it can use.
-    if not os.path.isfile(os.path.expanduser(bib_path)):
-        with open(os.path.expanduser(bib_path),'w') as f:
+    if not os.path.isfile(paper_dir+'/'+bib['ID']+'/'+bib_path):
+        with open(paper_dir+'/'+bib['ID']+'/'+bib_path,'w') as f:
             bib_str = bibtexparser.dumps(bib_save)
             f.write(bib_str.encode('utf8'))
     else:
-        print('Found a bib file at %s, not saving new one'%bib_path)
-    if not os.path.isfile(os.path.expanduser(org_path)):
-        with open(os.path.expanduser(org_path),'w') as f:
+        print('Found a bib file at %s, not saving new one'%(paper_dir+'/'+bib['ID']+'/'+bib_path))
+    if not os.path.isfile(paper_dir+'/'+bib['ID']+'/'+org_path):
+        with open(paper_dir+'/'+bib['ID']+'/'+org_path,'w') as f:
             f.write(org_file.encode('utf8'))
     else:
-        print('Found an org file at %s, not saving new one'%org_path)
+        print('Found an org file at %s, not saving new one'%(paper_dir+'/'+bib['ID']+'/'+org_path))
 
     print('Added entry (no file) for bib_id %s, check its folder to make sure everything looks like you want it to'%bib['ID'])        
     
@@ -172,18 +165,12 @@ def setup_folders_nofile(bib):
 def setup_folders_withfile(file_path,bib):
     import bibtexparser,os,time
     
-    new_path = paper_dir+'/{bib_id}/{bib_id}{extension}'.format(bib_id=bib['ID'],extension=os.path.splitext(file_path)[1])
+    new_path = '{bib_id}{extension}'.format(bib_id=bib['ID'],extension=os.path.splitext(file_path)[1])
     bib_path = os.path.splitext(new_path)[0]+'.bib'
     org_path = os.path.splitext(new_path)[0]+'.org'
 
-    os.renames(file_path,new_path)
+    os.renames(file_path,paper_dir+'/'+bib['ID']+'/'+new_path)
     
-    #This allows us to replace the home directory with a tilde,
-    #since I'll be using this across computers. Org can handle the
-    #tilde without any problem, so it's alright
-    for tmp_path in ['new_path','org_path','bib_path']:
-        exec(tmp_path+" = "+tmp_path+".replace(os.path.expanduser('~'),'~')")
-
     try:
         if bib['ENTRYTYPE']=='article':
             pub = bib['journal']
@@ -199,35 +186,38 @@ def setup_folders_withfile(file_path,bib):
     org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d").encode('utf8'),annotations=u'',notes=u'',pdf_path=new_path.encode('utf8'),bib_path=bib_path.encode('utf8'),todo=u'TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
     
     bib['file'] = new_path
+    bib['notefile'] = org_path
     bib_save = bibtexparser.bibdatabase.BibDatabase()
     bib_save.entries = [bib]
     
-    #expanduser is necessary because python does not like the
-    #tilde; we need to expand it to get a path it can use.
-    if not os.path.isfile(os.path.expanduser(bib_path)):    
-        with open(os.path.expanduser(bib_path),'w') as f:
+    if not os.path.isfile(paper_dir+'/'+bib['ID']+'/'+bib_path):
+        with open(paper_dir+'/'+bib['ID']+'/'+bib_path,'w') as f:
             bib_str = bibtexparser.dumps(bib_save)
             f.write(bib_str.encode('utf8'))
     else:
-        print('Found a bib file at %s, not saving new one'%bib_path)
-    if not os.path.isfile(os.path.expanduser(org_path)):            
-        with open(os.path.expanduser(org_path),'w') as f:
+        print('Found a bib file at %s, not saving new one'%paper_dir+'/'+bib['ID']+'/'+bib_path)
+    if not os.path.isfile(paper_dir+'/'+bib['ID']+'/'+org_path):
+        with open(paper_dir+'/'+bib['ID']+'/'+org_path,'w') as f:
             f.write(org_file.encode('utf8'))
     else:
-        print('Found an org file at %s, not saving new one'%org_path)
+        print('Found an org file at %s, not saving new one'%(paper_dir+'/'+bib['ID']+'/'+org_path))
 
     print('Added entry (with file) for bib_id %s, check its folder to make sure everything looks like you want it to'%bib['ID'])
     
     return bib_save,bib_path
     
 def master_bib_add(bib):
-    import bibtexparser,os,stat
+    import bibtexparser,os,stat,re
 
     os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
     
     with open(paper_dir+'/literature.bib') as f:
         master_bib_str = f.read().decode('utf8')
-        
+
+    for b in bib.entries:
+        if 'file' in b:
+            b['file'] = re.sub('(.*)\.pdf',r'\1/\1.pdf',b['file'])
+        b['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',b['notefile'])
     master_bib_str += bibtexparser.dumps(bib)
     master_bib = bibtexparser.loads(master_bib_str)
     
@@ -245,6 +235,9 @@ def master_org_add(bib_path):
     import re,os,stat
     from lit_update import key_get
     
+    if bib_path[0]!='/':
+        bib_path = paper_dir+'/'+os.path.splitext(bib_path)[0]+'/'+bib_path
+    
     org_path = os.path.splitext(bib_path)[0]+'.org'
 
     os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)
@@ -261,6 +254,7 @@ def master_org_add(bib_path):
     with open(os.path.expanduser(org_path)) as f:
         new_org = f.read().decode('utf8')+'\n\n'
     new_org = new_org[new_org.find('*'):]
+    new_org = re.subn('\[\[file:(.*)\.(.*)\]\]',r'[[file:\1/\1.\2]]',new_org)[0]
     new_org = re.split('^[*] ([A-Z]+)',new_org,flags=re.MULTILINE)[1:]
     new_org = [(new_org[0],new_org[1],key_get(new_org[1]))]
     

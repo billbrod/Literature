@@ -102,13 +102,12 @@ def main(fill_column=70):
             date_added = mend_entry['date_added']
         except:
             date_added = 'unknown'
-        #This allows us to replace the home directory with a tilde,
-        #since I'll be using this across computers. Org can handle the
-        #tilde without any problem, so it's alright
+        #I'm using this across machines and OS's, so having these be relative paths is the safest route
         for tmp_path in ['new_path','org_path','bib_new_path']:
-            exec(tmp_path+" = "+tmp_path+".replace(os.path.expanduser('~'),'~')")
+            exec(tmp_path+" = "+tmp_path+".replace(paper_dir,'')")
         org_file = org_format.format(title=bib['title'],tags=tags,date=date_added,annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["read"]),org_path=org_path,kws=keywords,authors=author,year=year,publication=pub,key=bib_id)
         bib['file'] = new_path
+        bib['notefile'] = org_path
         bib_save = bibtexparser.bibdatabase.BibDatabase()
         bib_save.entries = [bib]
         #expanduser is necessary because python does not like the

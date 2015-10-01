@@ -42,10 +42,7 @@ def update(fill_column=70):
     modified_time = {'bib':os.path.getmtime(paper_dir+'/literature.bib'),'org':os.path.getmtime(paper_dir+'/literature.org')}
     for bib_idx,bib in enumerate(master_bib.entries):
         bib_id = bib['ID']
-        if 'file' in bib: 
-            dir_path = os.path.expanduser(os.path.split(bib['file'])[0])
-        else:             
-            dir_path = paper_dir+'/%s'%bib_id
+        dir_path = paper_dir+'/%s'%bib_id
         if not os.path.isdir(dir_path):
             #Then this has been removed and we get it out of here
             print('Directory for bib id %s not found, removing from master bib and org files...'%bib_id)
@@ -72,6 +69,7 @@ def update(fill_column=70):
                 org_note = f.read().decode('utf8')+'\n\n'
             #Drop everything before the first header (startup options, etc)
             org_note = org_note[org_note.find('*'):]
+            org_note = re.subn('\[\[file:(.*)\.(.*)\]\]',r'[[file:\1/\1.\2]]',org_note)[0]
             org_note = re.split('^[*] ([A-Z]+)',org_note,flags=re.MULTILINE)[1:]
             org_note = (org_note[0],org_note[1],key_get(org_note[1]))
             master_org_idx = [bibid for (i,j,bibid) in master_org].index(bib_id)
@@ -79,8 +77,11 @@ def update(fill_column=70):
         if os.path.getmtime('%s/%s.bib'%(dir_path,bib_id)) > modified_time['bib']:
             print('Bib file %s.bib updated, copying new changes to master bib'%bib_id)
             with open('%s/%s.bib'%(dir_path,bib_id)) as f:
-                bib_file = f.read().decode('utf8')
-            master_bib.entries[bib_idx] = bibtexparser.loads(bib_file).entries[0]
+                bib = bibtexparser.loads(f.read().decode('utf8')).entries[0]
+            if 'file' in bib:
+                bib['file'] = re.sub('(.*)\.(.*)',r'\1/\1.\2',bib['file'])
+            bib['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib['notefile'])
+            master_bib.entries[bib_idx] = bib
                 
     for bib in to_remove:
         master_bib.entries.remove(bib)
@@ -165,6 +166,7 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             for org_file in org_glob:
                 with open(org_file) as f:
                     tmp = f.read().decode('utf8')
+                tmp = re.subn('\[\[file:(.*)\.(.*)\]\]',r'[[file:\1/\1.\2]]',tmp)[0]
                 master_org_text+="\n".join(tmp.split("\n")[1:])+"\n\n"
             with open(paper_dir+'/literature.org','w') as f:
                 f.write(master_org_text.encode('utf8'))        
@@ -182,13 +184,38 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             bib_glob.sort(key=lambda x:x.lower())
             for bib_file in bib_glob:
                 with open(bib_file) as f:
-                    master_bib_text += f.read().decode('utf8')
+                    bib = bibtexparser.loads(f.read().decode('utf8'))
+                if 'file' in bib.entries[0]:
+                    bib.entries[0]['file'] = re.sub('(.*)\.(.*)',r'\1/\1.\2',bib['file'])
+                bib.entries[0]['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib['notefile'])
+                master_bib_text += bibtexparser.dumps(bib)
             with open(paper_dir+'/literature.bib','w') as f:
                 f.write(master_bib_text.encode('utf8'))
             os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
 
-        
+#this is a temporary function to replace all absolute paths (with
+#tilde) with relative paths, so we can get this working with android's
+#RefMaster
+def scratch():
+    from lit_add import paper_dir
+    import glob,bibtexparser,os,re
     
+    for file_name in glob.glob(os.path.expanduser(paper_dir)+'/*/*.org'):
+        with open(file_name) as f:
+            tmp = f.read().decode('utf8')
+        tmp = re.subn('\[\[file:%s/(.*)/(.*)\.(.*)\]\]'%paper_dir,r'[[file:\2.\3]]',tmp)[0]
+        with open(file_name,'w') as f:
+            f.write(tmp.encode('utf8'))
+    for file_name in glob.glob(os.path.expanduser(paper_dir)+'/*/*.bib'):
+        with open(file_name,'r+') as f:
+            tmp = f.read().decode('utf8')
+        tmp = bibtexparser.loads(tmp)
+        if 'file' in tmp.entries[0]:
+            tmp.entries[0]['file'] = re.sub('%s/(.*)/(.*)\.(.*)'%paper_dir,r'\2.\3',tmp.entries[0]['file'])
+        tmp.entries[0]['notefile'] = tmp.entries[0]['ID']+'.org'
+        with open(file_name,'w') as f:
+            f.write(bibtexparser.dumps(tmp).encode('utf8'))
+        
 def col_wrap(text,fill_col,org_indent=''):
     text = text.split(' ')
     length = 0
