@@ -106,7 +106,7 @@ def main(fill_column=70):
         for tmp_path in ['new_path','org_path','bib_new_path']:
             exec(tmp_path+" = "+tmp_path+".replace(paper_dir,'')")
         org_file = org_format.format(title=bib['title'],tags=tags,date=date_added,annotations=annotations,notes=headers,pdf_path=new_path,bib_path=bib_new_path,todo={True:'TODO',False:'DONE'}.get(not mend_entry["read"]),org_path=org_path,kws=keywords,authors=author,year=year,publication=pub,key=bib_id)
-        bib['file'] = new_path
+        bib['file'] = ":%s:PDF"%new_path
         bib['notefile'] = org_path
         bib_save = bibtexparser.bibdatabase.BibDatabase()
         bib_save.entries = [bib]

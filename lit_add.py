@@ -185,7 +185,7 @@ def setup_folders_withfile(file_path,bib):
     
     org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d").encode('utf8'),annotations=u'',notes=u'',pdf_path=new_path.encode('utf8'),bib_path=bib_path.encode('utf8'),todo=u'TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
     
-    bib['file'] = new_path
+    bib['file'] = ":%s:PDF"%new_path
     bib['notefile'] = org_path
     bib_save = bibtexparser.bibdatabase.BibDatabase()
     bib_save.entries = [bib]
@@ -216,7 +216,7 @@ def master_bib_add(bib):
 
     for b in bib.entries:
         if 'file' in b:
-            b['file'] = re.sub('(.*)\.pdf',r'\1/\1.pdf',b['file'])
+            b['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',b['file'])
         b['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',b['notefile'])
     master_bib_str += bibtexparser.dumps(bib)
     master_bib = bibtexparser.loads(master_bib_str)

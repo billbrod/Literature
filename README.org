@@ -103,9 +103,20 @@
 
 * Android set-up
   
-  This should work right out of the box with RefMaster; just link it
-  to your dropbox, load in your literature.bib file, and you should be
-  good to go!
+  This set-up can be made to work on Android, but it takes a tiny
+  amount of work. I use [[https://play.google.com/store/apps/details?id=me.bares.refmaster&hl=en][RefMaster]], but I think this would work with
+  [[https://play.google.com/store/apps/details?id=com.cgogolin.library&hl=en][Library]] as well. The links need to be relative and formatted to work
+  with JabRef (which they are), but you also need to have all the
+  files on your local device. If you use Dropbox, they aren't all
+  downloaded, so you need to use something like [[https://play.google.com/store/apps/details?id=com.ttxapps.dropsync&hl=en][Dropsync]], which links
+  a local folder on your device to one of your Dropbox folders. This
+  will take up a fair amount of space, depending on how many files you
+  have, but if you have a wifi-only tablet and so don't have
+  consistent network access, you probably want all the files on your
+  device anyway, so you can read anywhere. 
+
+  Then simply load in your literature.bib file, and you should be good
+  to go!
   
 * Acknowledgments
 

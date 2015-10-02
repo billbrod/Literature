@@ -79,7 +79,7 @@ def update(fill_column=70):
             with open('%s/%s.bib'%(dir_path,bib_id)) as f:
                 bib = bibtexparser.loads(f.read().decode('utf8')).entries[0]
             if 'file' in bib:
-                bib['file'] = re.sub('(.*)\.(.*)',r'\1/\1.\2',bib['file'])
+                bib['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib['file'])
             bib['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib['notefile'])
             master_bib.entries[bib_idx] = bib
                 
@@ -186,13 +186,13 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
                 with open(bib_file) as f:
                     bib = bibtexparser.loads(f.read().decode('utf8'))
                 if 'file' in bib.entries[0]:
-                    bib.entries[0]['file'] = re.sub('(.*)\.(.*)',r'\1/\1.\2',bib['file'])
+                    bib.entries[0]['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib['file'])
                 bib.entries[0]['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib['notefile'])
                 master_bib_text += bibtexparser.dumps(bib)
             with open(paper_dir+'/literature.bib','w') as f:
                 f.write(master_bib_text.encode('utf8'))
             os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
-        
+            
 def col_wrap(text,fill_col,org_indent=''):
     text = text.split(' ')
     length = 0
