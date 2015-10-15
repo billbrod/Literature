@@ -69,12 +69,16 @@ def add_pdf(pdf_path):
         bib = pybib_utils.get_bibtex(doi)
     except BaseException as e:
         raise Exception("Error retrieving bibtex file for doi %s, should probably retrieve by hand"%doi)
-    bib = bibtexparser.loads(bib).entries[0]
+    parser = bibtexparser.bparser.BibTexParser()
+    parser.ignore_nonstandard_types = False
+    bib = bibtexparser.loads(bib,parser).entries[0]
     bib['ID'] = bib['ID'].replace('_','')
 
+    parser = bibtexparser.bparser.BibTexParser()
+    parser.ignore_nonstandard_types = False
     with open(paper_dir+'/literature.bib') as f:
         bib_str = f.read().decode('utf8')
-        master_bib = bibtexparser.loads(bib_str)
+        master_bib = bibtexparser.loads(bib_str,parser)
 
     if bib['ID'] in master_bib.entries_dict:
         print 'File with bib id %s already in master bib file, skipping'%bib['ID']
@@ -91,13 +95,17 @@ def add_bib(bib_path):
         bib_path = os.path.expanduser(bib_path)
     bib_path = os.path.abspath(bib_path)
 
+    parser = bibtexparser.bparser.BibTexParser()
+    parser.ignore_nonstandard_types = False
     with open(bib_path) as f:
         bib_str = f.read().decode('utf8')
-        bib_db = bibtexparser.loads(bib_str)
-        
+        bib_db = bibtexparser.loads(bib_str,parser)
+
+    parser = bibtexparser.bparser.BibTexParser()
+    parser.ignore_nonstandard_types = False
     with open(paper_dir+'/literature.bib') as f:
         bib_str = f.read().decode('utf8')
-        master_bib = bibtexparser.loads(bib_str)
+        master_bib = bibtexparser.loads(bib_str,parser)
         
     for bib in bib_db.entries:
         if bib['ID'] in master_bib.entries_dict:
@@ -219,7 +227,9 @@ def master_bib_add(bib):
             b['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',b['file'])
         b['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',b['notefile'])
     master_bib_str += bibtexparser.dumps(bib)
-    master_bib = bibtexparser.loads(master_bib_str)
+    parser = bibtexparser.bparser.BibTexParser()
+    parser.ignore_nonstandard_types = False
+    master_bib = bibtexparser.loads(master_bib_str,parser)
     
     #bibtexparser.dumps automatically sorts by bib id. I have to get
     #the string and then save it this way because bibtexparser's

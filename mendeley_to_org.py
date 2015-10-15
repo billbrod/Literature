@@ -25,8 +25,10 @@ def main(fill_column=70):
     
     df,notes = parse_mend_db(mend_path)
     
+    parser = bibtexparser.bparser.BibTexParser()
+    parser.ignore_nonstandard_types = False
     with open(bib_path) as f:
-        bib_db = bibtexparser.load(f)
+        bib_db = bibtexparser.loads(f.read().decode('utf8'),parser)
 
     for bib in bib_db.entries:
         bib_id = bib['ID']

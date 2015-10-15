@@ -30,8 +30,10 @@ def update(fill_column=70):
     if paper_dir[-1]=='/':
         paper_dir=paper_dir[:-1]
     
+    parser = bibtexparser.bparser.BibTexParser()
+    parser.ignore_nonstandard_types = False
     with open(paper_dir+'/literature.bib') as f:
-        master_bib = bibtexparser.load(f)
+        master_bib = bibtexparser.loads(f.read().decode('utf8'),parser)
 
     with open(paper_dir+'/literature.org') as f:
         master_org = f.read().decode('utf8')
@@ -76,12 +78,14 @@ def update(fill_column=70):
             master_org[master_org_idx] = org_note
         if os.path.getmtime('%s/%s.bib'%(dir_path,bib_id)) > modified_time['bib']:
             print('Bib file %s.bib updated, copying new changes to master bib'%bib_id)
+            parser = bibtexparser.bparser.BibTexParser()
+            parser.ignore_nonstandard_types = False
             with open('%s/%s.bib'%(dir_path,bib_id)) as f:
-                bib = bibtexparser.loads(f.read().decode('utf8')).entries[0]
-            if 'file' in bib:
-                bib['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib['file'])
-            bib['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib['notefile'])
-            master_bib.entries[bib_idx] = bib
+                bib_tmp = bibtexparser.loads(f.read().decode('utf8'),parser).entries[0]
+            if 'file' in bib_tmp:
+                bib_tmp['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib_tmp['file'])
+            bib_tmp['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib_tmp['notefile'])
+            master_bib.entries[bib_idx] = bib_tmp
                 
     for bib in to_remove:
         master_bib.entries.remove(bib)
@@ -153,6 +157,7 @@ def get_annotations(path,note_format='plain',org_indent='   ',fill_column=70):
 def force_renew(fill_column=70,org_flag=False,bib_flag=False):
     import glob,os,stat
     from lit_add import paper_dir
+    import bibtexparser
     if org_flag:
         if os.path.isfile(paper_dir+'/literature.org'):
             continue_choice=raw_input('Master org file exists, continue? [y/n] ').lower()
@@ -183,8 +188,10 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             bib_glob = glob.glob(paper_dir+'/*/*.bib')
             bib_glob.sort(key=lambda x:x.lower())
             for bib_file in bib_glob:
+                parser = bibtexparser.bparser.BibTexParser()
+                parser.ignore_nonstandard_types = False
                 with open(bib_file) as f:
-                    bib = bibtexparser.loads(f.read().decode('utf8'))
+                    bib = bibtexparser.loads(f.read().decode('utf8'),parser)
                 if 'file' in bib.entries[0]:
                     bib.entries[0]['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib['file'])
                 bib.entries[0]['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib['notefile'])
