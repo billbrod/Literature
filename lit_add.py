@@ -148,7 +148,15 @@ def setup_folders_nofile(bib):
     except KeyError:
         pub = u''
         
-    org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d"),annotations='',notes='',pdf_path='',bib_path=bib_path,todo='TODO',org_path=org_path,kws='',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
+    try:
+        org_file = org_format.format(title=bib['title'],tags=u'',date=time.strftime("%Y-%m-%d"),annotations=u'',notes=u'',pdf_path=u'',bib_path=bib_path.encode('utf8'),todo='TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
+    except KeyError as e:
+        print 'Attempted to get key %s from bib, it was not found'%e
+        print "Assuming this is because you have date instead of year, trying that..."
+        try:
+            org_file = org_format.format(title=bib['title'],tags=u'',date=time.strftime("%Y-%m-%d"),annotations=u'',notes=u'',pdf_path=u'',bib_path=bib_path.encode('utf8'),todo='TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['date'],publication=pub,key=bib['ID'])
+        except KeyError as f:
+            raise f
     
     bib['notefile'] = org_path
     bib_save = bibtexparser.bibdatabase.BibDatabase()
@@ -190,9 +198,17 @@ def setup_folders_withfile(file_path,bib):
             pub = u''
     except KeyError:
         pub = u''
-    
-    org_file = org_format.format(title=bib['title'],tags='',date=time.strftime("%Y-%m-%d").encode('utf8'),annotations=u'',notes=u'',pdf_path=new_path.encode('utf8'),bib_path=bib_path.encode('utf8'),todo=u'TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
-    
+
+    try:
+        org_file = org_format.format(title=bib['title'],tags=u'',date=time.strftime("%Y-%m-%d").encode('utf8'),annotations=u'',notes=u'',pdf_path=new_path.encode('utf8'),bib_path=bib_path.encode('utf8'),todo='TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['year'],publication=pub,key=bib['ID'])
+    except KeyError as e:
+        print 'Attempted to get key %s from bib, it was not found'%e
+        print "Assuming this is because you have date instead of year, trying that..."
+        try:
+            org_file = org_format.format(title=bib['title'],tags=u'',date=time.strftime("%Y-%m-%d").encode('utf8'),annotations=u'',notes=u'',pdf_path=new_path.encode('utf8'),bib_path=bib_path.encode('utf8'),todo='TODO',org_path=org_path.encode('utf8'),kws=u'',authors=bib['author'],year=bib['date'],publication=pub,key=bib['ID'])
+        except KeyError as f:
+            raise f
+        
     bib['file'] = ":%s:PDF"%new_path
     bib['notefile'] = org_path
     bib_save = bibtexparser.bibdatabase.BibDatabase()
