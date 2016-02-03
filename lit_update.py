@@ -21,12 +21,7 @@ def update(fill_column=70):
     #Make it so we can write again...
     os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
     os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)
-    
-    shutil.copyfile(paper_dir+'/literature.bib',paper_dir+'/literature.backup.bib')
-    shutil.copyfile(paper_dir+'/literature.org',paper_dir+'/literature.backup.org')
-    os.chmod(paper_dir+'/literature.backup.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
-    os.chmod(paper_dir+'/literature.backup.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
-    
+        
     if paper_dir[-1]=='/':
         paper_dir=paper_dir[:-1]
     
@@ -161,10 +156,10 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
     paper_dir = os.path.expanduser(paper_dir)
     if org_flag:
         if os.path.isfile(paper_dir+'/literature.org'):
-            continue_choice=raw_input('Master org file exists, continue? [y/n] ').lower()
+            continue_choice=raw_input('Master org file exists, continue? THIS WILL REMOVE THE FILE AND RECREATE IT [y/n] ').lower()
             if continue_choice == 'y':
                 os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)
-                os.rename(paper_dir+'/literature.org',paper_dir+'/literature.backup.org')
+                os.remove(paper_dir+'/literature.org')
         if not os.path.isfile(paper_dir+'/literature.org'):
             master_org_text = "#+STARTUP: showeverything\n"
             org_glob = glob.glob(paper_dir+'/*/*.org')
@@ -181,10 +176,10 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             print("literature.org exists and you don't want to overwrite it...")
     if bib_flag:
         if os.path.isfile(paper_dir+'/literature.bib'):
-            continue_choice=raw_input('Master bibfile exists, continue? [y/n] ').lower()
+            continue_choice=raw_input('Master bibfile exists, continue? THIS WILL REMOVE THE FILE AND RECREATE IT [y/n] ').lower()
             if continue_choice == 'y':
                 os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
-                os.rename(paper_dir+'/literature.bib',paper_dir+'/literature.backup.bib')
+                os.remove(paper_dir+'/literature.bib')
         if not os.path.isfile(paper_dir+'/literature.bib'):
             master_bib_text=""
             #Want to go through bib files in alphabetical order too
