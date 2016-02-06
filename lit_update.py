@@ -21,12 +21,7 @@ def update(fill_column=70):
     #Make it so we can write again...
     os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
     os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)
-    
-    shutil.copyfile(paper_dir+'/literature.bib',paper_dir+'/literature.backup.bib')
-    shutil.copyfile(paper_dir+'/literature.org',paper_dir+'/literature.backup.org')
-    os.chmod(paper_dir+'/literature.backup.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
-    os.chmod(paper_dir+'/literature.backup.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
-    
+        
     if paper_dir[-1]=='/':
         paper_dir=paper_dir[:-1]
     
@@ -155,16 +150,17 @@ def get_annotations(path,note_format='plain',org_indent='   ',fill_column=70):
 #date, you can use this (with the appropriate flags) to force re-write
 #them entirely. Or if you accidentally delete your master file.
 def force_renew(fill_column=70,org_flag=False,bib_flag=False):
-    import glob,os,stat
+    import glob,os,stat,re
     from lit_add import paper_dir
     import bibtexparser
+    paper_dir = os.path.expanduser(paper_dir)
     if org_flag:
         if os.path.isfile(paper_dir+'/literature.org'):
-            continue_choice=raw_input('Master org file exists, continue? [y/n] ').lower()
+            continue_choice=raw_input('Master org file exists, continue? THIS WILL REMOVE THE FILE AND RECREATE IT [y/n] ').lower()
             if continue_choice == 'y':
                 os.chmod(paper_dir+'/literature.org',stat.S_IWUSR|stat.S_IREAD)
-                os.rename(paper_dir+'/literature.org',paper_dir+'/literature.backup.org')
-        if continue_choice == 'y':
+                os.remove(paper_dir+'/literature.org')
+        if not os.path.isfile(paper_dir+'/literature.org'):
             master_org_text = "#+STARTUP: showeverything\n"
             org_glob = glob.glob(paper_dir+'/*/*.org')
             org_glob.sort(key=lambda x:x.lower())
@@ -176,13 +172,15 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             with open(paper_dir+'/literature.org','w') as f:
                 f.write(master_org_text.encode('utf8'))        
             os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
+        else:
+            print("literature.org exists and you don't want to overwrite it...")
     if bib_flag:
         if os.path.isfile(paper_dir+'/literature.bib'):
-            continue_choice=raw_input('Master bibfile exists, continue? [y/n] ').lower()
+            continue_choice=raw_input('Master bibfile exists, continue? THIS WILL REMOVE THE FILE AND RECREATE IT [y/n] ').lower()
             if continue_choice == 'y':
                 os.chmod(paper_dir+'/literature.bib',stat.S_IWUSR|stat.S_IREAD)
-                os.rename(paper_dir+'/literature.bib',paper_dir+'/literature.backup.bib')
-        if continue_choice == 'y':
+                os.remove(paper_dir+'/literature.bib')
+        if not os.path.isfile(paper_dir+'/literature.bib'):
             master_bib_text=""
             #Want to go through bib files in alphabetical order too
             bib_glob = glob.glob(paper_dir+'/*/*.bib')
@@ -199,6 +197,8 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             with open(paper_dir+'/literature.bib','w') as f:
                 f.write(master_bib_text.encode('utf8'))
             os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
+        else:
+            print("literature.bib exists and you don't want to over-write it...")
             
 def col_wrap(text,fill_col,org_indent=''):
     text = text.split(' ')

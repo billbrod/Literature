@@ -19,20 +19,20 @@
 
 ;;Helm-bibtex configuration options
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
-(setq helm-bibtex-bibliography "~/Dropbox/Docs/Papers/literature.bib")
+(setq helm-bibtex-bibliography "~/Org-Docs/Papers/literature.bib")
 ;;Should be the same as paper_dir from lit_add.py
-(setq helm-bibtex-library-path "~/Dropbox/Docs/Papers/")
+(setq helm-bibtex-library-path "~/Org-Docs/Papers/")
 ;;Should be the same as paper_dir from lit_add.py
-(setq helm-bibtex-notes-path "~/Dropbox/Docs/Papers/")
+(setq helm-bibtex-notes-path "~/Org-Docs/Papers/")
 (setq helm-bibtex-notes-extension ".org")
 (setq helm-bibtex-additional-search-fields '(journal))
 
-(setq reftex-default-bibliography '("~/Dropbox/Docs/Papers/literature.bib"))
+(setq reftex-default-bibliography '("~/Org-Docs/Papers/literature.bib"))
 
 ;; see org-ref for use of these variables
-(setq org-ref-bibliography-notes "~/Dropbox/Docs/Papers/literature.org"
-      org-ref-default-bibliography '("~/Dropbox/Docs/Papers/literature.bib")
-      org-ref-pdf-directory "~/Dropbox/Docs/Papers/")
+(setq org-ref-bibliography-notes "~/Org-Docs/Papers/literature.org"
+      org-ref-default-bibliography '("~/Org-Docs/Papers/literature.bib")
+      org-ref-pdf-directory "~/Org-Docs/Papers/")
 
 (global-set-key [f10] 'org-ref-open-bibtex-notes)
 (global-set-key [f11] 'org-ref-open-bibtex-pdf)
@@ -60,7 +60,7 @@
 ;;specifically. For me, it was a non-standard parentheses (appeared
 ;;too large) which was causing the issue.
 (defun test-bib-files ()
-  (setq test-list (f-glob "~/Dropbox/Docs/Papers/*/*.bib"))
+  (setq test-list (f-glob "~/Org-Docs/Papers/*/*.bib"))
   (while test-list
     (setq helm-bibtex-bibliography (car test-list))
     (print (car test-list))
