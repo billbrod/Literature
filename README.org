@@ -5,6 +5,7 @@
    - pandas
    - sqlite3
    - numpy
+   - gitpython
      
 ** System
    
@@ -13,7 +14,8 @@
    - poppler-data
    - poppler-utils
    - python-poppler
-     
+   - git
+
 * Set-up
 
   Clone this directory somewhere in your machine and set the global

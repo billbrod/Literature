@@ -8,6 +8,14 @@
 #previously annotated files.
 paper_dir = "~/Org-Docs/Papers"
 
+# Path to your git repository (on your local machine). This is
+# optional -- if you don't want to push to a git repository, set this
+# to None. If you have a value here, a new commit and push will be
+# made everytime a file is added. If you do have a value here, this
+# script will grab author from your git config (user.name and
+# user.email).
+repo_path = "~/Org-Docs"
+
 #How you want your org note formatted. I haven't played around with
 #this too much, so it probably isn't very robust. If you want to add
 #or remove fields, that's on you.
@@ -80,13 +88,18 @@ def add_pdf(pdf_path):
         bib_str = f.read().decode('utf8')
         master_bib = bibtexparser.loads(bib_str,parser)
 
+    updated_files = []
     if bib['ID'] in master_bib.entries_dict:
         print 'File with bib id %s already in master bib file, skipping'%bib['ID']
     else:
-        bib_save,bib_path = setup_folders_withfile(pdf_path,bib)
+        bib_save,bib_path,org_path,new_path = setup_folders_withfile(pdf_path,bib)
+        updated_files.extend([bib_path,org_path,new_path])
         
         master_org_add(bib_path)
         master_bib_add(bib_save)
+        
+    updated_files.extend([paper_dir+'/literature.bib',paper_dir+'/literature.org'])
+    git_add_commit(updated_files)
     
 def add_bib(bib_path):
     import bibtexparser,os
@@ -107,6 +120,7 @@ def add_bib(bib_path):
         bib_str = f.read().decode('utf8')
         master_bib = bibtexparser.loads(bib_str,parser)
         
+    updated_files = []
     for bib in bib_db.entries:
         if bib['ID'] in master_bib.entries_dict:
             print('Bib %s already in master bib file, skipping'%bib['ID'])
@@ -117,16 +131,22 @@ def add_bib(bib_path):
                 file_path = bib['file']
                 if '~' in file_path:
                     file_path = os.path.expanduser(file_path)
-                bib_save,bib_path = setup_folders_withfile(file_path,bib)
+                bib_save,bib_path,org_path,new_path = setup_folders_withfile(file_path,bib)
+                updated_files.extend([bib_path,org_path,new_path])
             else:
                 print 'File %s for bib %s from %s not found!'%(bib['file'],bib['ID'],bib_path)
                 bib.pop('file')
-                bib_save,bib_path = setup_folders_nofile(bib)
+                bib_save,bib_path,org_path = setup_folders_nofile(bib)
+                updated_files.extend([bib_path,org_path])
         except KeyError as e:
             print 'No file field found in bib %s from %s'%(bib['ID'],bib_path)
-            bib_save,bib_path = setup_folders_nofile(bib)
+            bib_save,bib_path,org_path = setup_folders_nofile(bib)
+            updated_files.extend([bib_path,org_path])
         master_org_add(bib_path)
         master_bib_add(bib_save)
+
+    updated_files.extend([paper_dir+'/literature.bib',paper_dir+'/literature.org'])
+    git_add_commit(updated_files)
         
 def setup_folders_nofile(bib):
     import bibtexparser,os,time
@@ -176,7 +196,7 @@ def setup_folders_nofile(bib):
 
     print('Added entry (no file) for bib_id %s, check its folder to make sure everything looks like you want it to'%bib['ID'])        
     
-    return bib_save,bib_path
+    return bib_save,bib_path,org_path
         
 def setup_folders_withfile(file_path,bib):
     import bibtexparser,os,time
@@ -228,7 +248,7 @@ def setup_folders_withfile(file_path,bib):
 
     print('Added entry (with file) for bib_id %s, check its folder to make sure everything looks like you want it to'%bib['ID'])
     
-    return bib_save,bib_path
+    return bib_save,bib_path,org_path,new_path
     
 def master_bib_add(bib):
     import bibtexparser,os,stat,re
@@ -292,6 +312,22 @@ def master_org_add(bib_path):
 
     os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
 
+def git_add_commit(files):
+    """Adds all passed-in files to the specified repo, commits them, and
+    pushes it to origin master
+
+    """
+    import os
+    import git
+    repo_path = os.path.expanduser(repo_path)
+    repo = git.Repo(repo_path)
+    repo.index.add(files)
+    reader = repo.config_reader()
+    print("Adding %s to git repo %s"%(files,repo_path))
+    repo.index.commit("%s"%files,author=git.Actor(reader.get_value('user','name'),reader.get_value('user','email')))
+    origin = repo.remote('origin')
+    print("Pushing to origin master")
+    origin.push('master')
     
 if __name__ == '__main__':
     import sys,os,lit_update
