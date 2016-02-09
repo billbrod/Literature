@@ -14,7 +14,7 @@
 
 def update(fill_column=70):
     import os,stat,bibtexparser,time,re,shutil
-    from lit_add import paper_dir,org_format
+    from lit_add import paper_dir,org_format,git_add_commit,repo_path
     
     paper_dir = os.path.expanduser(paper_dir)
     
@@ -36,6 +36,7 @@ def update(fill_column=70):
     master_org = [(i,j,key_get(j)) for i,j in zip(master_org[::2],master_org[1::2])]
     
     to_remove = []
+    updated_files = []
     modified_time = {'bib':os.path.getmtime(paper_dir+'/literature.bib'),'org':os.path.getmtime(paper_dir+'/literature.org')}
     for bib_idx,bib in enumerate(master_bib.entries):
         bib_id = bib['ID']
@@ -46,6 +47,10 @@ def update(fill_column=70):
             master_org_idx = [bibid for (i,j,bibid) in master_org].index(bib_id)
             master_org.pop(master_org_idx)
             to_remove.append(bib)
+            if paper_dir+'/literature.bib' not in updated_files:
+                updated_files.append(paper_dir+'/literature.bib')
+            if paper_dir+'/literature.org' not in updated_files:
+                updated_files.append(paper_dir+'/literature.org')
             continue
         if os.path.isfile('%s/%s.pdf'%(dir_path,bib_id)) and os.path.getmtime('%s/%s.pdf'%(dir_path,bib_id)) > modified_time['org']:
             print('Pdf %s.pdf updated, extracting annotations'%bib_id)
@@ -60,6 +65,7 @@ def update(fill_column=70):
             org_note = org_hdr+''.join([i+j+k for i,j,k in org_note])
             with open('%s/%s.org'%(dir_path,bib_id),'w') as f:
                 f.write(org_note.encode('utf8'))
+            updated_files.extend(["%s/%s.pdf"%(dir_path,bib_id),"%s/%s.org"%(dir_path,bib_id)])
         if os.path.getmtime('%s/%s.org'%(dir_path,bib_id)) > modified_time['org']:
             print('Org file %s.org updated, copying new changes to master org'%bib_id)
             with open('%s/%s.org'%(dir_path,bib_id)) as f:
@@ -71,6 +77,9 @@ def update(fill_column=70):
             org_note = (org_note[0],org_note[1],key_get(org_note[1]))
             master_org_idx = [bibid for (i,j,bibid) in master_org].index(bib_id)
             master_org[master_org_idx] = org_note
+            if paper_dir+'/literature.org' not in updated_files:
+                updated_files.append(paper_dir+'/literature.org')
+            updated_files.append("%s/%s.org"%(dir_path,bib_id))
         if os.path.getmtime('%s/%s.bib'%(dir_path,bib_id)) > modified_time['bib']:
             print('Bib file %s.bib updated, copying new changes to master bib'%bib_id)
             parser = bibtexparser.bparser.BibTexParser()
@@ -81,13 +90,15 @@ def update(fill_column=70):
                 bib_tmp['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib_tmp['file'])
             bib_tmp['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib_tmp['notefile'])
             master_bib.entries[bib_idx] = bib_tmp
-                
+            if paper_dir+'/literature.bib' not in updated_files:
+                updated_files.append(paper_dir+'/literature.bib')
+            updated_files.append("%s/%s.bib"%(dir_path,bib_id))
+            
     for bib in to_remove:
         master_bib.entries.remove(bib)
     with open(paper_dir+'/literature.bib','w') as f:
         master_bib_str = bibtexparser.dumps(master_bib)
         f.write(master_bib_str.encode('utf8'))
-        
     
     master_org.sort(key=lambda x:x[2].lower())
     master_org = "#+STARTUP: showeverything\n"+'* '.join(['']+[i+j for i,j,k in master_org])
@@ -100,6 +111,7 @@ def update(fill_column=70):
     os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
     os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
             
+    git_add_commit(updated_files)
 
 def get_annotations(path,note_format='plain',org_indent='   ',fill_column=70):
     # Based on code from Steve Powell, found at
