@@ -327,7 +327,6 @@ def git_add_commit(files):
     """
     import os
     import git
-    repo_path = os.path.expanduser(repo_path)
     repo = git.Repo(repo_path)
     repo.index.add(files)
     reader = repo.config_reader()
@@ -340,6 +339,7 @@ def git_add_commit(files):
 if __name__ == '__main__':
     import sys,os,lit_update
     paper_dir = os.path.expanduser(paper_dir)
+    repo_path = os.path.expanduser(repo_path)
     if os.path.splitext(sys.argv[1])[1] == '.bib':
         add_bib(sys.argv[1])
     elif os.path.splitext(sys.argv[1])[1] == '.pdf':
