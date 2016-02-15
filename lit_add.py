@@ -98,6 +98,10 @@ def add_pdf(pdf_path):
         master_org_add(bib_path)
         master_bib_add(bib_save)
         
+    #Because the paths in updated_files are probably not the absolute
+    #paths, and so we need to make them absolute.
+    updated_files = [paper_dir+'/'+os.path.splitext(path)[0]+'/'+path for path in updated_files if path[0]!='/']
+        
     updated_files.extend([paper_dir+'/literature.bib',paper_dir+'/literature.org'])
     git_add_commit(updated_files)
     
@@ -144,6 +148,10 @@ def add_bib(bib_path):
             updated_files.extend([bib_path,org_path])
         master_org_add(bib_path)
         master_bib_add(bib_save)
+        
+    #Because the paths in updated_files are probably not the absolute
+    #paths, and so we need to make them absolute.
+    updated_files = [paper_dir+'/'+os.path.splitext(path)[0]+'/'+path for path in updated_files if path[0]!='/']
 
     updated_files.extend([paper_dir+'/literature.bib',paper_dir+'/literature.org'])
     git_add_commit(updated_files)
