@@ -327,14 +327,17 @@ def git_add_commit(files):
     """
     import os
     import git
-    repo = git.Repo(repo_path)
-    repo.index.add(files)
-    reader = repo.config_reader()
-    print("Adding %s to git repo %s"%(files,repo_path))
-    repo.index.commit("%s"%files,author=git.Actor(reader.get_value('user','name'),reader.get_value('user','email')))
-    origin = repo.remote('origin')
-    print("Pushing to origin master")
-    origin.push('master')
+    if files:
+        repo = git.Repo(repo_path)
+        repo.index.add(files)
+        reader = repo.config_reader()
+        print("Adding %s to git repo %s"%(files,repo_path))
+        repo.index.commit("%s"%files,author=git.Actor(reader.get_value('user','name'),reader.get_value('user','email')))
+        origin = repo.remote('origin')
+        print("Pushing to origin master")
+        origin.push('master')
+    else:
+        print("No files changed or added, not committing")
     
 if __name__ == '__main__':
     import sys,os,lit_update
