@@ -65,7 +65,9 @@ def update(fill_column=70):
             org_note = org_hdr+''.join([i+j+k for i,j,k in org_note])
             with open('%s/%s.org'%(dir_path,bib_id),'w') as f:
                 f.write(org_note.encode('utf8'))
-            updated_files.extend(["%s/%s.pdf"%(dir_path,bib_id),"%s/%s.org"%(dir_path,bib_id)])
+            updated_files.append("%s/%s.pdf"%(dir_path,bib_id))
+            if "%s/%s.org"%(dir_path,bib_id) not in updated_files:
+                updated_files.append("%s/%s.org"%(dir_path,bib_id))
         if os.path.getmtime('%s/%s.org'%(dir_path,bib_id)) > modified_time['org']:
             print('Org file %s.org updated, copying new changes to master org'%bib_id)
             with open('%s/%s.org'%(dir_path,bib_id)) as f:
@@ -79,7 +81,8 @@ def update(fill_column=70):
             master_org[master_org_idx] = org_note
             if paper_dir+'/literature.org' not in updated_files:
                 updated_files.append(paper_dir+'/literature.org')
-            updated_files.append("%s/%s.org"%(dir_path,bib_id))
+            if "%s/%s.org"%(dir_path,bib_id) not in updated_files:
+                updated_files.append("%s/%s.org"%(dir_path,bib_id))
         if os.path.getmtime('%s/%s.bib'%(dir_path,bib_id)) > modified_time['bib']:
             print('Bib file %s.bib updated, copying new changes to master bib'%bib_id)
             parser = bibtexparser.bparser.BibTexParser()
