@@ -209,7 +209,7 @@ def setup_folders_nofile(bib):
 def setup_folders_withfile(file_path,bib):
     import bibtexparser,os,time
     
-    new_path = '{bib_id}{extension}'.format(bib_id=bib['ID'],extension=os.path.splitext(file_path)[1])
+    new_path = '{bib_id}{extension}'.format(bib_id=bib['ID'],extension=(os.path.splitext(file_path)[1]).lower())
     bib_path = os.path.splitext(new_path)[0]+'.bib'
     org_path = os.path.splitext(new_path)[0]+'.org'
 
@@ -343,9 +343,9 @@ if __name__ == '__main__':
     import sys,os,lit_update
     paper_dir = os.path.expanduser(paper_dir)
     repo_path = os.path.expanduser(repo_path)
-    if os.path.splitext(sys.argv[1])[1] == '.bib':
+    if (os.path.splitext(sys.argv[1])[1]).lower() == '.bib':
         add_bib(sys.argv[1])
-    elif os.path.splitext(sys.argv[1])[1] == '.pdf':
+    elif (os.path.splitext(sys.argv[1])[1]).lower() == '.pdf':
         add_pdf(sys.argv[1])
     else:
         raise Exception('Don\'t know how to deal with extension %s'%os.path.splitext(sys.argv[1])[1])
