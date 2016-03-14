@@ -117,6 +117,15 @@ def add_bib(bib_path):
     with open(bib_path) as f:
         bib_str = f.read().decode('utf8')
         bib_db = bibtexparser.loads(bib_str,parser)
+    # Occasionally, the encoding will be utf-8-sig instead of utf8
+    # (which adds an extra BOM signature
+    # http://stackoverflow.com/questions/7274478/why-do-python-unicode-strings-require-special-treatment-for-utf-8-bom)
+    # and so to get the actual text, we need to decode that way
+    # instead.
+    if not bib_db.entries:
+        with open(bib_path) as f:
+            bib_str = f.read().decode('utf-8-sig')
+            bib_db = bibtexparser.loads(bib_str,parser)        
 
     parser = bibtexparser.bparser.BibTexParser()
     parser.ignore_nonstandard_types = False
