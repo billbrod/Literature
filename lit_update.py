@@ -14,7 +14,7 @@
 
 def update(fill_column=70):
     import os,stat,bibtexparser,time,re,shutil
-    from lit_add import paper_dir,org_format,git_add_commit,repo_path
+    from lit_add import paper_dir,org_format,git_update_commit,repo_path
     
     paper_dir = os.path.expanduser(paper_dir)
     
@@ -35,8 +35,12 @@ def update(fill_column=70):
     master_org = re.split('^[*] ([A-Z]+)',master_org,flags=re.MULTILINE)[1:]
     master_org = [(i,j,key_get(j)) for i,j in zip(master_org[::2],master_org[1::2])]
     
+    # For files to remove from the master bib file
     to_remove = []
+    # For files to add and commit to the git repo
     updated_files = []
+    # For files to remove from the git repo
+    deleted_files = []
     modified_time = {'bib':os.path.getmtime(paper_dir+'/literature.bib'),'org':os.path.getmtime(paper_dir+'/literature.org')}
     for bib_idx,bib in enumerate(master_bib.entries):
         bib_id = bib['ID']
@@ -46,6 +50,7 @@ def update(fill_column=70):
             print('Directory for bib id %s not found, removing from master bib and org files...'%bib_id)
             master_org_idx = [bibid for (i,j,bibid) in master_org].index(bib_id)
             master_org.pop(master_org_idx)
+            deleted_files.extend([paper_dir+'/{bib}/{bib}.{ext}'.format(bib=bib_id,ext=extension) for extension in ['org','pdf','bib']])
             to_remove.append(bib)
             if paper_dir+'/literature.bib' not in updated_files:
                 updated_files.append(paper_dir+'/literature.bib')
@@ -114,7 +119,7 @@ def update(fill_column=70):
     os.chmod(paper_dir+'/literature.bib',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
     os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
             
-    git_add_commit(updated_files)
+    git_update_commit(updated_files,deleted_files)
 
 def get_annotations(path,note_format='plain',org_indent='   ',fill_column=70):
     # Based on code from Steve Powell, found at

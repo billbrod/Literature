@@ -103,7 +103,7 @@ def add_pdf(pdf_path):
     updated_files = [paper_dir+'/'+os.path.splitext(path)[0]+'/'+path for path in updated_files if path[0]!='/']
         
     updated_files.extend([paper_dir+'/literature.bib',paper_dir+'/literature.org'])
-    git_add_commit(updated_files)
+    git_update_commit(updated_files)
     
 def add_bib(bib_path):
     import bibtexparser,os
@@ -163,7 +163,7 @@ def add_bib(bib_path):
     updated_files = [paper_dir+'/'+os.path.splitext(path)[0]+'/'+path for path in updated_files if path[0]!='/']
 
     updated_files.extend([paper_dir+'/literature.bib',paper_dir+'/literature.org'])
-    git_add_commit(updated_files)
+    git_update_commit(updated_files)
         
 def setup_folders_nofile(bib):
     import bibtexparser,os,time
@@ -329,24 +329,32 @@ def master_org_add(bib_path):
 
     os.chmod(paper_dir+'/literature.org',stat.S_IREAD|stat.S_IRGRP|stat.S_IROTH)
 
-def git_add_commit(files):
+def git_update_commit(add_files,remove_files=[]):
     """Adds all passed-in files to the specified repo, commits them, and
     pushes it to origin master
 
     """
     import os
     import git
-    if files:
+    if not add_files and not remove_files:
+        print("No files changed or added, not committing")
+    else:
         repo = git.Repo(repo_path)
-        repo.index.add(files)
         reader = repo.config_reader()
-        print("Adding %s to git repo %s"%(files,repo_path))
-        repo.index.commit("%s"%files,author=git.Actor(reader.get_value('user','name'),reader.get_value('user','email')))
+        commit_msg = ""
+        if add_files:
+            print("Adding %s to git repo %s"%(add_files,repo_path))
+            repo.index.add(add_files)
+            commit_msg+="Adds %s. "%add_files
+        if remove_files:
+            print("Removing %s to git repo %s"%(remove_files,repo_path))
+            repo.index.remove(remove_files)
+            commit_msg+="Removes %s. "%remove_files
+        repo.index.commit(commit_msg,author=git.Actor(reader.get_value('user','name'),reader.get_value('user','email')))
         origin = repo.remote('origin')
         print("Pushing to origin master")
         origin.push('master')
-    else:
-        print("No files changed or added, not committing")
+
     
 if __name__ == '__main__':
     import sys,os,lit_update
