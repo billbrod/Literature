@@ -79,7 +79,7 @@ def update(fill_column=70):
                 org_note = f.read().decode('utf8')+'\n\n'
             #Drop everything before the first header (startup options, etc)
             org_note = org_note[org_note.find('*'):]
-            org_note = re.subn('\[\[file:(.*)\.(.*)\]\]',r'[[file:\1/\1.\2]]',org_note)[0]
+            org_note = re.subn('\[\[file:(.*)\.(.*)\]\]',r'[[file:%s/\1.\2]]'%bib_id,org_note)[0]
             org_note = re.split('^[*] ([A-Z]+)',org_note,flags=re.MULTILINE)[1:]
             org_note = (org_note[0],org_note[1],key_get(org_note[1]))
             master_org_idx = [bibid for (i,j,bibid) in master_org].index(bib_id)
@@ -95,8 +95,8 @@ def update(fill_column=70):
             with open('%s/%s.bib'%(dir_path,bib_id)) as f:
                 bib_tmp = bibtexparser.loads(f.read().decode('utf8'),parser).entries[0]
             if 'file' in bib_tmp:
-                bib_tmp['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib_tmp['file'])
-            bib_tmp['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib_tmp['notefile'])
+                bib_tmp['file'] = re.sub(':(.*)\.(.*)',r':%s/\1.\2'%bib_id,bib_tmp['file'])
+            bib_tmp['notefile'] = re.sub('(.*)\.org',r'%s/\1.org'%bib_id,bib_tmp['notefile'])
             master_bib.entries[bib_idx] = bib_tmp
             if paper_dir+'/literature.bib' not in updated_files:
                 updated_files.append(paper_dir+'/literature.bib')
@@ -187,7 +187,9 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
             for org_file in org_glob:
                 with open(org_file) as f:
                     tmp = f.read().decode('utf8')
-                tmp = re.subn('\[\[file:(.*)\.(.*)\]\]',r'[[file:\1/\1.\2]]',tmp)[0]
+                bib_id = re.findall(r':BIBTEX-KEY: (.*)',tmp)
+                assert len(bib_id)==1,"Found zero or more than 1 bib_ids (%s) for file %s"%(bib_id,org_file)
+                tmp = re.subn('\[\[file:(.*)\.(.*)\]\]',r'[[file:%s/\1.\2]]'%bib_id[0],tmp)[0]
                 master_org_text+="\n".join(tmp.split("\n")[1:])+"\n\n"
             with open(paper_dir+'/literature.org','w') as f:
                 f.write(master_org_text.encode('utf8'))        
@@ -211,8 +213,8 @@ def force_renew(fill_column=70,org_flag=False,bib_flag=False):
                 with open(bib_file) as f:
                     bib = bibtexparser.loads(f.read().decode('utf8'),parser)
                 if 'file' in bib.entries[0]:
-                    bib.entries[0]['file'] = re.sub(':(.*)\.(.*)',r':\1/\1.\2',bib['file'])
-                bib.entries[0]['notefile'] = re.sub('(.*)\.org',r'\1/\1.org',bib['notefile'])
+                    bib.entries[0]['file'] = re.sub(':(.*)\.(.*)',r':%s/\1.\2'%bib['ID'],bib['file'])
+                bib.entries[0]['notefile'] = re.sub('(.*)\.org',r'%s/\1.org'%bib['ID'],bib['notefile'])
                 master_bib_text += bibtexparser.dumps(bib)
             with open(paper_dir+'/literature.bib','w') as f:
                 f.write(master_bib_text.encode('utf8'))
