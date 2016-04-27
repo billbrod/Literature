@@ -48,7 +48,7 @@ org_format=u"""#+STARTUP: showall
 
 def add_pdf(pdf_path):
     import poppler,re,os,pybib_utils,bibtexparser,time
-    
+
     if '~' in pdf_path:
         pdf_path = os.path.expanduser(pdf_path)
     pdf_path = os.path.abspath(pdf_path)
