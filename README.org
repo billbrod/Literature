@@ -16,6 +16,16 @@
    - python-poppler
    - git
 
+** Emacs
+
+   If you're going to use this with Emacs, you'll need the following
+   emacs packages (all can be installed from MELPA)
+
+   - bibtex-utils
+   - org-ref
+   - helm-bibtex
+   - biblio
+
 * Set-up
 
   Clone this directory somewhere in your machine and set the global

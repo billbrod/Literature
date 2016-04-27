@@ -3,7 +3,7 @@
 (defun literature-update ()
   "Updates the master literature bib and org files"
   (interactive)
-  (shell-command "~/anaconda2/bin/python ~/Documents/Literature/lit_update.py"))
+  (shell-command "~/anaconda/bin/python ~/Documents/Literature/lit_update.py"))
 (global-set-key (kbd "s-u") 'literature-update)
 (add-hook 'kill-emacs-hook 'literature-update)
 
@@ -14,7 +14,7 @@
 
 (defun eshell/literature-add (&rest args)
   "Adds a new item to the library"
-  (let ((cmd (concat "~/anaconda2/bin/python ~/Documents/Literature/lit_add.py " (pop args))))
+  (let ((cmd (concat "~/anaconda/bin/python ~/Documents/Literature/lit_add.py " (pop args))))
     (shell-command cmd)))
 
 ;;Helm-bibtex configuration options
@@ -42,12 +42,12 @@
 ;; in your load-path
 (require 'org-ref)
 (require 'doi-utils)
-(setq jmax-bibtex-hydra-key-binding "\C-cj")
-(require 'jmax-bibtex)
-(require 'pubmed)
-(require 'arxiv)
-(require 'sci-id)
-(require 'isbn)
+(require 'bibtex-utils)
+(setq org-ref-bibtex-hydra-key-binding (kbd "C-c j"))
+(require 'org-ref-pubmed)
+(require 'org-ref-arxiv)
+(require 'org-ref-sci-id)
+(require 'org-ref-isbn)
 (require 'x2bib)
 
 ;;This is a function to test your bib files in case something's the
