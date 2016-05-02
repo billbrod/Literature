@@ -28,22 +28,18 @@
 (setq bibtex-completion-additional-search-fields '(journal))
 
 (setq reftex-default-bibliography '("~/Org-Docs/Papers/literature.bib"))
-
 ;; see org-ref for use of these variables
 (setq org-ref-bibliography-notes "~/Org-Docs/Papers/literature.org"
       org-ref-default-bibliography '("~/Org-Docs/Papers/literature.bib")
       org-ref-pdf-directory "~/Org-Docs/Papers/")
-
-(global-set-key [f10] 'org-ref-open-bibtex-notes)
-(global-set-key [f11] 'org-ref-open-bibtex-pdf)
-(global-set-key [f12] 'org-ref-open-in-browser)
 
 ;; make sure you have dash, helm, helm-bibtex, ebib, s, f, hydra and key-chord
 ;; in your load-path
 (require 'org-ref)
 (require 'doi-utils)
 (require 'bibtex-utils)
-(setq org-ref-bibtex-hydra-key-binding (kbd "C-c j"))
+(require 'org-ref-bibtex)
+(define-key bibtex-mode-map (kbd "C-c j") 'org-ref-bibtex-hydra/body)
 (require 'org-ref-pubmed)
 (require 'org-ref-arxiv)
 (require 'org-ref-sci-id)
@@ -73,6 +69,14 @@
 ;; This tell bibtex-completion to look at the File field of the bibtex
 ;; entry to figure out which pdf to open
 (setq bibtex-completion-pdf-field "File")
+;; We need this because org-ref-get-pdf-filename-function expects one
+;; pdf, but bibtex-completion-find-pdf returns a list containing one
+;; filename. So, using car, we grab the first item in that list and
+;; return it.
+(defun my/find-one-pdf (key)
+  (car (bibtex-completion-find-pdf key))
+    )
+(setq org-ref-get-pdf-filename-function 'my/find-one-pdf)
 
 ;; Over-write the bibtex-completion-edit-notes function, because we
 ;; format the entries as KEY/KEY.org in bibtex-completion-notes-path,
@@ -115,40 +119,11 @@
 	   (goto-char (point-max))
 	   (bibtex-completion-notes-mode 1))))))
 
-(setq org-ref-get-pdf-filename-function 'bibtex-completion-find-pdf)
+
 
 ;;Custom function to open the individual notes file
 (add-to-list 'org-ref-helm-user-candidates
 	     '("Open individual notes file" . (lambda ()
 						(bibtex-completion-edit-notes (car (org-ref-get-bibtex-key-and-file))))))
 
-;;Custom version of the open bibtex notes file, since I call the field BIBTEX-KEY instead of Custom_ID
-(eval-after-load 'org-ref
-  '(defun org-ref-open-bibtex-notes ()
-     "From a bibtex entry, open the master org file and finds the
-notes. Modified function from org-ref.el"
-     (interactive)
 
-     (bibtex-beginning-of-entry)
-     (let* ((cb (current-buffer))
-	    (bibtex-expand-strings t)
-	    (entry (cl-loop for (key . value) in (bibtex-parse-entry t)
-			    collect (cons (downcase key) value)))
-	    (key (reftex-get-bib-field "=key=" entry)))
-
-       ;; save key to clipboard to make saving pdf later easier by pasting.
-       (with-temp-buffer
-	 (insert key)
-	 (kill-ring-save (point-min) (point-max)))
-
-       ;; now look for entry in the notes file
-       (if  org-ref-bibliography-notes
-	   (find-file-other-window org-ref-bibliography-notes)
-	 (error "Org-ref-bib-bibliography-notes is not set to anything"))
-
-       (goto-char (point-min))
-       ;; put new entry in notes if we don't find it.
-       (if (re-search-forward (format ":BIBTEX-KEY: %s$" key) nil 'end)
-	   (funcall org-ref-open-notes-function)
-	 	 
-	 (message "Entry not found")))))
