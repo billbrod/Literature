@@ -1,6 +1,6 @@
 """This is the utils.py script from pybib, found at
 https://github.com/jgilchrist/pybib/blob/master/pybib/utils.py (commit
-f3a6b884b56c6332e1cf3c22c8adb174c2b9f266). 
+f3a6b884b56c6332e1cf3c22c8adb174c2b9f266).
 
 After installing pybib, I couldn't find a way to use it from within
 python (the way it installed through pip, that is), so I copied the
@@ -12,10 +12,10 @@ string)
 """
 
 import requests
-import json
 
 GET_URL = "http://dx.doi.org/{}"
 SEARCH_URL = "http://api.crossref.org/works"
+
 
 def handle_status_code(r):
     if r.status_code == 200:
@@ -24,6 +24,7 @@ def handle_status_code(r):
         exit('Unknown')
     else:
         exit("Unhandled http response code: {}".format(r.status_code))
+
 
 def search(query):
     payload = {'query': query}
@@ -36,6 +37,7 @@ def search(query):
     results = r.json()
     results = results["message"]["items"]
     return results
+
 
 def get_bibtex(doi):
     url = GET_URL.format(doi)

@@ -53,7 +53,6 @@ def add_pdf(pdf_path):
     import os
     import pybib_utils
     import bibtexparser
-    import time
 
     if '~' in pdf_path:
         pdf_path = os.path.expanduser(pdf_path)
@@ -77,15 +76,17 @@ def add_pdf(pdf_path):
         doi = max(set(doi), key=doi.count)
     except ValueError:
         raise Exception(
-            "Unable to find doi in pdf %s, you'll have to manually download bibtex" % pdf_path)
+            "Unable to find doi in pdf %s, "
+            "you'll have to manually download bibtex" % pdf_path)
 
     print('Checking doi %s' % doi)
 
     try:
         bib = pybib_utils.get_bibtex(doi)
-    except BaseException as e:
+    except BaseException:
         raise Exception(
-            "Error retrieving bibtex file for doi %s, should probably retrieve by hand" % doi)
+            "Error retrieving bibtex file for doi %s, "
+            "should probably retrieve by hand" % doi)
     parser = bibtexparser.bparser.BibTexParser()
     parser.ignore_nonstandard_types = False
     bib = bibtexparser.loads(bib, parser).entries[0]
@@ -99,7 +100,8 @@ def add_pdf(pdf_path):
 
     updated_files = []
     if bib['ID'] in master_bib.entries_dict:
-        print 'File with bib id %s already in master bib file, skipping' % bib['ID']
+        print('File with bib id %s already in master bib file, '
+              'skipping' % bib['ID'])
     else:
         bib_save, bib_path, org_path, new_path = setup_folders_withfile(
             pdf_path, bib)
@@ -154,20 +156,26 @@ def add_bib(bib_path):
             continue
         try:
             if os.path.isfile(os.path.expanduser(bib['file'])):
-                print 'File %s found for bib %s from %s' % (bib['file'], bib['ID'], bib_path)
+                print('File %s found for bib %s from %s'
+                      % (bib['file'], bib['ID'], bib_path))
                 file_path = bib['file']
                 if '~' in file_path:
                     file_path = os.path.expanduser(file_path)
-                bib_save, bib_path, org_path, new_path = setup_folders_withfile(
-                    file_path, bib)
+                # We assign and unpack the paths on two separate lines
+                # because I can't come up with another way to get this
+                # under the max line length.
+                paths = setup_folders_withfile(file_path, bib)
+                bib_save, bib_path, org_path, new_path = paths
                 updated_files.extend([bib_path, org_path, new_path])
             else:
-                print 'File %s for bib %s from %s not found!' % (bib['file'], bib['ID'], bib_path)
+                print("File %s for bib %s from %s not found!"
+                      % (bib['file'], bib['ID'], bib_path))
                 bib.pop('file')
                 bib_save, bib_path, org_path = setup_folders_nofile(bib)
                 updated_files.extend([bib_path, org_path])
-        except KeyError as e:
-            print 'No file field found in bib %s from %s' % (bib['ID'], bib_path)
+        except KeyError:
+            print('No file field found in bib %s from %s'
+                  % (bib['ID'], bib_path))
             bib_save, bib_path, org_path = setup_folders_nofile(bib)
             updated_files.extend([bib_path, org_path])
         master_org_add(bib_path)
@@ -175,8 +183,8 @@ def add_bib(bib_path):
 
     # Because the paths in updated_files are probably not the absolute
     # paths, and so we need to make them absolute.
-    updated_files = [paper_dir + '/' + os.path.splitext(
-        path)[0] + '/' + path for path in updated_files if path[0] != '/']
+    updated_files = [paper_dir + '/' + os.path.splitext(path)[0] +
+                     '/' + path for path in updated_files if path[0] != '/']
 
     updated_files.extend([paper_dir + '/literature.bib',
                           paper_dir + '/literature.org'])
@@ -206,14 +214,24 @@ def setup_folders_nofile(bib):
         pub = u''
 
     try:
-        org_file = org_format.format(title=bib['title'], tags=u'', date=time.strftime("%Y-%m-%d"), annotations=u'', notes=u'', pdf_path=u'', bib_path=bib_path.encode(
-            'utf8'), todo='TODO', org_path=org_path.encode('utf8'), kws=u'', authors=bib['author'], year=bib['year'], publication=pub, key=bib['ID'])
+        org_file = org_format.format(
+            title=bib['title'], tags=u'', date=time.strftime("%Y-%m-%d"),
+            annotations=u'', notes=u'', pdf_path=u'',
+            bib_path=bib_path.encode('utf8'), todo='TODO',
+            org_path=org_path.encode('utf8'), kws=u'', authors=bib['author'],
+            year=bib['year'], publication=pub, key=bib['ID'])
     except KeyError as e:
-        print 'Attempted to get key %s from bib, it was not found' % e
-        print "Assuming this is because you have date instead of year, trying that..."
+        print("Attempted to get key %s from bib, it was not found" % e)
+        print("Assuming this is because you have date instead of year, "
+              "trying that...")
         try:
-            org_file = org_format.format(title=bib['title'], tags=u'', date=time.strftime("%Y-%m-%d"), annotations=u'', notes=u'', pdf_path=u'', bib_path=bib_path.encode(
-                'utf8'), todo='TODO', org_path=org_path.encode('utf8'), kws=u'', authors=bib['author'], year=bib['date'], publication=pub, key=bib['ID'])
+            org_file = org_format.format(
+                title=bib['title'], tags=u'', date=time.strftime("%Y-%m-%d"),
+                annotations=u'', notes=u'', pdf_path=u'',
+                bib_path=bib_path.encode('utf8'), todo='TODO',
+                org_path=org_path.encode('utf8'), kws=u'',
+                authors=bib['author'], year=bib['date'], publication=pub,
+                key=bib['ID'])
         except KeyError as f:
             raise f
 
@@ -235,8 +253,8 @@ def setup_folders_nofile(bib):
         print('Found an org file at %s, not saving new one' %
               (paper_dir + '/' + bib['ID'] + '/' + org_path))
 
-    print(
-        'Added entry (no file) for bib_id %s, check its folder to make sure everything looks like you want it to' % bib['ID'])
+    print("Added entry (no file) for bib_id %s, check its folder "
+          "to make sure everything looks like you want it to" % bib['ID'])
 
     return bib_save, bib_path, org_path
 
@@ -266,14 +284,26 @@ def setup_folders_withfile(file_path, bib):
         pub = u''
 
     try:
-        org_file = org_format.format(title=bib['title'], tags=u'', date=time.strftime("%Y-%m-%d").encode('utf8'), annotations=u'', notes=u'', pdf_path=new_path.encode(
-            'utf8'), bib_path=bib_path.encode('utf8'), todo='TODO', org_path=org_path.encode('utf8'), kws=u'', authors=bib['author'], year=bib['year'], publication=pub, key=bib['ID'])
+        org_file = org_format.format(
+            title=bib['title'], tags=u'',
+            date=time.strftime("%Y-%m-%d").encode('utf8'), annotations=u'',
+            notes=u'', pdf_path=new_path.encode('utf8'),
+            bib_path=bib_path.encode('utf8'), todo='TODO',
+            org_path=org_path.encode('utf8'), kws=u'', authors=bib['author'],
+            year=bib['year'], publication=pub, key=bib['ID'])
     except KeyError as e:
-        print 'Attempted to get key %s from bib, it was not found' % e
-        print "Assuming this is because you have date instead of year, trying that..."
+        print("Attempted to get key %s from bib, it was not found" % e)
+        print("Assuming this is because you have "
+              "date instead of year, trying that...")
         try:
-            org_file = org_format.format(title=bib['title'], tags=u'', date=time.strftime("%Y-%m-%d").encode('utf8'), annotations=u'', notes=u'', pdf_path=new_path.encode(
-                'utf8'), bib_path=bib_path.encode('utf8'), todo='TODO', org_path=org_path.encode('utf8'), kws=u'', authors=bib['author'], year=bib['date'], publication=pub, key=bib['ID'])
+            org_file = org_format.format(
+                title=bib['title'], tags=u'',
+                date=time.strftime("%Y-%m-%d").encode('utf8'), annotations=u'',
+                notes=u'', pdf_path=new_path.encode('utf8'),
+                bib_path=bib_path.encode('utf8'), todo='TODO',
+                org_path=org_path.encode('utf8'), kws=u'',
+                authors=bib['author'], year=bib['date'], publication=pub,
+                key=bib['ID'])
         except KeyError as f:
             raise f
 
@@ -296,8 +326,8 @@ def setup_folders_withfile(file_path, bib):
         print('Found an org file at %s, not saving new one' %
               (paper_dir + '/' + bib['ID'] + '/' + org_path))
 
-    print(
-        'Added entry (with file) for bib_id %s, check its folder to make sure everything looks like you want it to' % bib['ID'])
+    print("Added entry (with file) for bib_id %s, check its folder to "
+          "make sure everything looks like you want it to" % bib['ID'])
 
     return bib_save, bib_path, org_path, new_path
 
@@ -382,7 +412,6 @@ def git_update_commit(add_files, remove_files=[]):
     pushes it to origin master
 
     """
-    import os
     import git
     if not add_files and not remove_files:
         print("No files changed or added, not committing")
@@ -398,8 +427,9 @@ def git_update_commit(add_files, remove_files=[]):
             print("Removing %s to git repo %s" % (remove_files, repo_path))
             repo.index.remove(remove_files)
             commit_msg += "Removes %s. " % remove_files
-        repo.index.commit(commit_msg, author=git.Actor(
-            reader.get_value('user', 'name'), reader.get_value('user', 'email')))
+        repo.index.commit(commit_msg,
+                          author=git.Actor(reader.get_value('user', 'name'),
+                                           reader.get_value('user', 'email')))
         origin = repo.remote('origin')
         print("Pushing to origin master")
         origin.push('master')
@@ -408,7 +438,6 @@ def git_update_commit(add_files, remove_files=[]):
 if __name__ == '__main__':
     import sys
     import os
-    import lit_update
     paper_dir = os.path.expanduser(paper_dir)
     repo_path = os.path.expanduser(repo_path)
     if (os.path.splitext(sys.argv[1])[1]).lower() == '.bib':
