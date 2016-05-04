@@ -94,9 +94,9 @@ def add_pdf(pdf_path):
 
     parser = bibtexparser.bparser.BibTexParser()
     parser.ignore_nonstandard_types = False
+    parser.encoding = 'utf8'
     with open(paper_dir + '/literature.bib') as f:
-        bib_str = f.read().decode('utf8')
-        master_bib = bibtexparser.loads(bib_str, parser)
+        master_bib = bibtexparser.load(f, parser)
 
     updated_files = []
     if bib['ID'] in master_bib.entries_dict:
@@ -145,9 +145,9 @@ def add_bib(bib_path):
 
     parser = bibtexparser.bparser.BibTexParser()
     parser.ignore_nonstandard_types = False
+    parser.encoding = 'utf8'
     with open(paper_dir + '/literature.bib') as f:
-        bib_str = f.read().decode('utf8')
-        master_bib = bibtexparser.loads(bib_str, parser)
+        master_bib = bibtexparser.load(f, parser)
 
     updated_files = []
     for bib in bib_db.entries:

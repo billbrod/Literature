@@ -1,16 +1,17 @@
 #!/usr/bin/env python
+"""
+For update:
+- For each bib entry in master bib, check since last master bib
+ update:
+ - If pdf updated: re-run get annotations
+ - If notes updated: update master notes
+ - If bib updated: update master bib
 
-# For update:
-# - For each bib entry in master bib, check since last master bib
-#  update:
-#  - If pdf updated: re-run get annotations
-#  - If notes updated: update master notes
-#  - If bib updated: update master bib
-
-# This file only updates one-way: from local files to master files. For
-# this reason, the master files are kept read-only. If this becomes too
-# annoying, I may try to find a way to update both ways, but for now
-# this works.
+This file only updates one-way: from local files to master files. For
+this reason, the master files are kept read-only. If this becomes too
+annoying, I may try to find a way to update both ways, but for now
+this works.
+"""
 
 
 def update(fill_column=70):
@@ -31,8 +32,9 @@ def update(fill_column=70):
 
     parser = bibtexparser.bparser.BibTexParser()
     parser.ignore_nonstandard_types = False
+    parser.encoding = 'utf8'
     with open(paper_dir + '/literature.bib') as f:
-        master_bib = bibtexparser.loads(f.read().decode('utf8'), parser)
+        master_bib = bibtexparser.load(f, parser)
 
     with open(paper_dir + '/literature.org') as f:
         master_org = f.read().decode('utf8')
@@ -119,9 +121,9 @@ def update(fill_column=70):
                   "changes to master bib" % bib_id)
             parser = bibtexparser.bparser.BibTexParser()
             parser.ignore_nonstandard_types = False
+            parser.encoding = 'utf8'
             with open('%s/%s.bib' % (dir_path, bib_id)) as f:
-                bib_tmp = bibtexparser.loads(
-                    f.read().decode('utf8'), parser).entries[0]
+                bib_tmp = bibtexparser.load(f, parser).entries[0]
             if 'file' in bib_tmp:
                 bib_tmp['file'] = re.sub(
                     ':(.*)\.(.*)', r':%s/\1.\2' % bib_id, bib_tmp['file'])
@@ -157,18 +159,20 @@ def update(fill_column=70):
 
 def get_annotations(path, note_format='plain', org_indent='   ',
                     fill_column=70):
-    # Based on code from Steve Powell, found at
-    # (https://gist.github.com/stevepowell99/e1e389a57ea9a2bcb988).
-    # See his blog post
-    # http://socialdatablog.com/extract-pdf-annotations.html for more
-    # details
-    #
-    # note_format, one of:
-    # - 'plain': no special formatting, each annotation on separate line
-    # - 'wrap': annotation wrapped so that each has a new line after
-    #           fill_column characters
-    # - 'org': for .org notes file, wrapped after fill_column
-    #          characters, each line starts with org_indent
+    """
+    Based on code from Steve Powell, found at
+    (https://gist.github.com/stevepowell99/e1e389a57ea9a2bcb988).
+    See his blog post
+    http://socialdatablog.com/extract-pdf-annotations.html for more
+    details
+
+    note_format, one of:
+    - 'plain': no special formatting, each annotation on separate line
+    - 'wrap': annotation wrapped so that each has a new line after
+              fill_column characters
+    - 'org': for .org notes file, wrapped after fill_column
+             characters, each line starts with org_indent
+    """
 
     import poppler
     import re
@@ -209,12 +213,11 @@ def get_annotations(path, note_format='plain', org_indent='   ',
                     notes = notes + '%s%s\n\n' % (org_indent, j)
         return notes
 
-# If you're concerned that your master bib or org files are just out of
-# date, you can use this (with the appropriate flags) to force re-write
-# them entirely. Or if you accidentally delete your master file.
-
 
 def force_renew(fill_column=70, org_flag=False, bib_flag=False):
+    """ If you're concerned that your master bib or org files are just out of
+    date, you can use this (with the appropriate flags) to force re-write
+    them entirely. Or if you accidentally delete your master file."""
     import glob
     import os
     import stat
@@ -269,13 +272,16 @@ def force_renew(fill_column=70, org_flag=False, bib_flag=False):
             for bib_file in bib_glob:
                 parser = bibtexparser.bparser.BibTexParser()
                 parser.ignore_nonstandard_types = False
+                parser.encoding = 'utf8'
                 with open(bib_file) as f:
-                    bib = bibtexparser.loads(f.read().decode('utf8'), parser)
+                    bib = bibtexparser.load(f, parser)
                 if 'file' in bib.entries[0]:
                     bib.entries[0]['file'] = re.sub(
-                        ':(.*)\.(.*)', r':%s/\1.\2' % bib['ID'], bib['file'])
+                        ':(.*)\.(.*)', r':%s/\1.\2'
+                        % bib.entries[0]['ID'], bib.entries[0]['file'])
                 bib.entries[0]['notefile'] = re.sub(
-                    '(.*)\.org', r'%s/\1.org' % bib['ID'], bib['notefile'])
+                    '(.*)\.org', r'%s/\1.org'
+                    % bib.entries[0]['ID'], bib.entries[0]['notefile'])
                 master_bib_text += bibtexparser.dumps(bib)
             with open(paper_dir + '/literature.bib', 'w') as f:
                 f.write(master_bib_text.encode('utf8'))
