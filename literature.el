@@ -3,7 +3,7 @@
 (defun literature-update ()
   "Updates the master literature bib and org files"
   (interactive)
-  (shell-command "~/anaconda/bin/python ~/Documents/Literature/lit_update.py"))
+  (shell-command "~/anaconda2/bin/python ~/Documents/Literature/lit_update.py"))
 (global-set-key (kbd "s-u") 'literature-update)
 (add-hook 'kill-emacs-hook 'literature-update)
 
@@ -14,7 +14,7 @@
 
 (defun eshell/literature-add (&rest args)
   "Adds a new item to the library"
-  (let ((cmd (concat "~/anaconda/bin/python ~/Documents/Literature/lit_add.py " (pop args))))
+  (let ((cmd (concat "~/anaconda2/bin/python ~/Documents/Literature/lit_add.py " (pop args))))
     (shell-command cmd)))
 
 ;;Helm-bibtex configuration options
@@ -37,6 +37,8 @@
 ;; in your load-path
 (require 'org-ref)
 (require 'doi-utils)
+(require 'org-ref-pdf)
+(require 'org-ref-latex)
 (require 'bibtex-utils)
 (require 'org-ref-bibtex)
 (define-key bibtex-mode-map (kbd "C-c j") 'org-ref-bibtex-hydra/body)
