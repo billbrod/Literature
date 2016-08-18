@@ -65,8 +65,9 @@
     (print (bibtex-completion-candidates))
     (setq test-list (cdr test-list))))
 
-;;This uses the system default to open the pdf
-(setq bibtex-completion-pdf-open-function 'helm-open-file-with-default-tool)
+;; I use pdf-tools in emacs to open the pdf. If you want to use your
+;; system default (eg, evince or okular), uncomment this line.
+;; (setq bibtex-completion-pdf-open-function 'helm-open-file-with-default-tool)
 
 ;; This tell bibtex-completion to look at the File field of the bibtex
 ;; entry to figure out which pdf to open
