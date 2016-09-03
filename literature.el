@@ -1,136 +1,416 @@
-;;To use this, make sure the paths in literature-update, literature-add, and the helm-bibtex configurations are all correct
+;;; literature.el -- helper functions to manage bibliography and notes,
 
-(defun literature-update ()
-  "Updates the master literature bib and org files"
-  (interactive)
-  (shell-command "~/anaconda2/bin/python ~/Documents/Literature/lit_update.py"))
-(global-set-key (kbd "s-u") 'literature-update)
-(add-hook 'kill-emacs-hook 'literature-update)
+;; Author: Bill Broderick <billbrod@gmail.com>
+;; URL: https://github.com/billbrod/Literature
+;; Package-Requires: ((bibtex-utils) (org-ref) (helm-bibtex) (biblio))
+;; This file is not currently part of GNU Emacs
 
-;; From https://github.com/emacs-helm/helm/wiki/Find-Files, "Most
-;; Eshell commands are available only after Eshell has been started
-;; once. To start Eshell on Emacs startup, add the following to your
-;; init file:"
-(add-hook 'emacs-startup-hook (lambda ()
-                                (let ((default-directory (getenv "HOME")))
-                                  (command-execute 'eshell)
-                                  (bury-buffer))))
+;;; Commentary:
+;; This code is based on org-ref, helm-bibtex, biblio, and
+;; bibtex-utils. Some of it is simply convenience wrappers around
+;; pre-existing functions from those packages, others are more
+;; substantive.
+;;
+;; Read the README for more details.
 
-(defun eshell/literature-add (&rest args)
-  "Adds a new item to the library"
-  (let ((cmd (concat "~/anaconda2/bin/python ~/Documents/Literature/lit_add.py " (pop args))))
-    (shell-command cmd)))
-
-;;Helm-bibtex configuration options
-;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
-(setq bibtex-completion-bibliography "~/Org-Docs/Papers/literature.bib")
-;;Should be the same as paper_dir from lit_add.py
-(setq bibtex-completion-library-path "~/Org-Docs/Papers/")
-;;Should be the same as paper_dir from lit_add.py
-(setq bibtex-completion-notes-path "~/Org-Docs/Papers/")
-(setq bibtex-completion-notes-extension ".org")
-(setq bibtex-completion-additional-search-fields '(journal))
-
-(setq reftex-default-bibliography '("~/Org-Docs/Papers/literature.bib"))
-;; see org-ref for use of these variables
-(setq org-ref-bibliography-notes "~/Org-Docs/Papers/literature.org"
-      org-ref-default-bibliography '("~/Org-Docs/Papers/literature.bib")
-      org-ref-pdf-directory "~/Org-Docs/Papers/")
-
-;; make sure you have dash, helm, helm-bibtex, ebib, s, f, hydra and key-chord
-;; in your load-path
+;;; Code:
 (require 'org-ref)
 (require 'doi-utils)
 (require 'org-ref-pdf)
 (require 'org-ref-latex)
-(require 'bibtex-utils)
 (require 'org-ref-bibtex)
-(define-key bibtex-mode-map (kbd "C-c j") 'org-ref-bibtex-hydra/body)
 (require 'org-ref-pubmed)
 (require 'org-ref-arxiv)
 (require 'org-ref-sci-id)
 (require 'org-ref-isbn)
+(require 'bibtex-utils)
 (require 'x2bib)
 
-;;This is a function to test your bib files in case something's the
-;;matter with your library and helm-bibtex. I ran into an error where
-;;helm-bibtex would not display my library but also returned no
-;;errors. Evaluating bibtex-completion-candidates returned a parentheses
-;;unbalanced error, but I wasn't sure where it was. This loops through
-;;all bib files (may have to update your path) and tests each one. It
-;;will fail when there's a problem, so you can go and look at it
-;;specifically. For me, it was a non-standard parentheses (appeared
-;;too large) which was causing the issue.
-(defun test-bib-files ()
-  (setq test-list (f-glob "~/Org-Docs/Papers/*/*.bib"))
-  (while test-list
-    (setq bibtex-completion-bibliography (car test-list))
-    (print (car test-list))
-    (print (bibtex-completion-candidates))
-    (setq test-list (cdr test-list))))
 
-;; I use pdf-tools in emacs to open the pdf. If you want to use your
-;; system default (eg, evince or okular), uncomment this line.
-;; (setq bibtex-completion-pdf-open-function 'helm-open-file-with-default-tool)
+;;; I don't think this will matter for use, but important for testing:
+;;; the functions do not expand ~ into /home/user/, so having that in
+;;; the path will cause them to fail.
 
-;; This tell bibtex-completion to look at the File field of the bibtex
-;; entry to figure out which pdf to open
-(setq bibtex-completion-pdf-field "File")
-;; We need this because org-ref-get-pdf-filename-function expects one
-;; pdf, but bibtex-completion-find-pdf returns a list containing one
-;; filename. So, using car, we grab the first item in that list and
-;; return it.
-(defun my/find-one-pdf (key)
-  (car (bibtex-completion-find-pdf key))
+;;; Variables:
+(defcustom literature-paper-directory
+  nil
+  "Parent directory for all your papers. This directory will
+  contain the master .bib and .org files, and each entry will
+  have a separate directory, containing the individual .bib and
+  .org files, as well as the pdf (if present) and any other
+  files. MUST end with a slash."
+  :type 'directory
+  :group 'literature)
+
+(defcustom literature-master-bib
+  nil
+  "Name of your master bibliography file, which all of the
+individual .bib files are combined in. This is probably the same
+file as your org-ref-default-bibliography. However, this should
+just be the name (eg, literature.bib), not the full path; this
+will be placed within your literature-paper-directory."
+  :type 'file
+  :group 'literature
+  )
+
+(defcustom literature-master-org
+  nil
+  "Name of your master notes file, which all of the individual
+.org files are combined in. This is probably the same as your
+org-ref-bibliography-notes. However, this should just be the
+name (eg, literature.org), not the full path; this will be placed
+within your literature-paper-directory."
+  :type 'file
+  :group 'literature
+  )
+
+;;; Functions:
+
+(setq literature-paper-directory "/home/billbrod/Org-Docs/Papers/")
+;; (setq literature-master-bib "tmp.bib")
+(setq literature-master-bib "literature.bib")
+;; (setq literature-master-org "tmp.org")
+(setq literature-master-org "literature.org")
+
+;; tests
+(literature-add-file "/home/billbrod/Downloads/PNAS-2016-Chadwick-1610686113.pdf")
+(literature-add-file "/home/billbrod/Downloads/Winkler2016.pdf")
+(literature-add-file "/home/billbrod/Downloads/VerhagenWagenmakers2014.pdf")
+(literature-add-file "/home/billbrod/Downloads/071076.full.pdf")
+
+(defun literature-add-file (file)
+  "Add a file to your bibliography. Accepts pdfs (in which case
+we attempt to automatically get the bibtex by extracting the doi)
+and .bib files. Any other file typ ewill cause an exception"
+  (interactive)
+  (cond ((equalp (file-name-extension file) "pdf")
+	 (literature-add-pdf file))
+	((equalp (file-name-extension file) "bib")
+	 (literature-add-bib file))
+	(t (display-warning :warning "Only files with a pdf or bib extension are accepted"))
+	)
+  )
+
+;;; add_pdf:
+;; 1. attempt to get doi from pdf
+;; 2. if can't, throw an exception (to start, eventually, give user option to input)
+;; 3. if can, download bibtex and check to see if it's already in litearture.bib
+;; 4. call setup_with_file
+;; 5. call git_update_commit
+(defun literature-add-pdf (file)
+  ;; to get the moving around within the bibtex buffer working,
+  ;; biblio-synchronous needs to be true
+  (let ((doi (literature-extract-doi-from-pdf file)) (biblio-synchronous t))
+    (when (not doi)
+      (error (format "Unable to retrieve doi from %s, download .bib yourself" file)))
+    (with-temp-buffer
+     (bibtex-mode)
+     ;; there are two places where this could fail. The first is in
+     ;; grabbing the bib for the doi (less likely) and the second is
+     ;; in running org-ref-clean-bibtex-entry on the resulting
+     ;; entry. An error there may be the result of a problem in the
+     ;; first case, but it might not show up until then. These
+     ;; condition-cases catches any error that comes out (several
+     ;; different ones are possible) and raises a more descriptive
+     ;; error message.
+     (condition-case nil
+	 (doi-insert-bibtex doi)
+       ('error
+	(error (format "Unable to download .bib for file %s, doi %s. download .bib yourself" file doi))))
+     (beginning-of-buffer)
+     (condition-case nil
+	 (org-ref-clean-bibtex-entry)
+       ('error
+	(error (format "Unable to properly format bibtex entry for file %s, download .bib yourself" file))
+	))
+     ;; we don't want to add the file if the key we're using already exists
+     (let ((key (literature-get-key-from-bibtex)))
+       (literature-check-key key file)
+       )
+     ;; or if the doi does
+     (literature-check-doi doi file)
+     ;; and now we set up the directory, passing it the pdf file path
+     ;; and the contents of the bib file. Need to use
+     ;; buffer-substring-no-properties so we don't grab the properties
+     ;; of the buffer, which aren't helpful.
+     (let ((bib-contents (buffer-substring-no-properties (point-min) (point-max)))
+	   (key (literature-get-key-from-bibtex)))
+       ;;and call the stuff to set it up.
+       (literature-setup-files key bib-contents file)
+       )
+     ;; and finally we push things to git
+     )
+    ))
+
+
+(defun literature-check-key (key &optional file)
+  "Check whether the key is found in your bibliographies and, if
+so, raise an error"
+  (when (cdr (org-ref-get-bibtex-key-and-file key))
+    (if file
+	(error (format "Key %s (for pdf %s) already in your bibliography" key file)))
+    (error (format "Key %s already in your bibliography" key)))
+  )
+
+(defun literature-check-doi (doi &optional file)
+  "Based on the end of doi-utils-add-bibtex-entry-from-doi, we
+check whether the doi is already in one of the bibliography files
+and, if so, raise an error."
+  (cl-loop for bibfile in org-ref-bibliography-files do
+	   (with-current-buffer
+	       (find-file-noselect bibfile)
+	     (goto-char (point-min))
+	     (when (search-forward doi nil t)
+	       (if file
+		   (error (format "DOI %s (for pdf %s) already in your bibliography" doi file))
+		 (error (format "DOI %s already in your bibliography" doi)))
+	       ))
+	   )
+  )
+
+(defun literature-get-key-from-bibtex ()
+  "attempt to get the key from the bibtex entry currently under
+  the point"
+  (interactive)
+  (bibtex-beginning-of-entry)
+  ;; based on code from http://stackoverflow.com/a/15974319/4659293
+  (when (re-search-forward "@[A-Za-z]+{\\(.*\\),")
+    (match-string 1))
+  )
+
+(defun literature-get-citation-field (field key)
+  "Get the FIELD of an entry with KEY.  Return FIELD as a
+string. Entry with KEY must be in your bibliography.
+
+Based on org-ref-get-citation-year"
+  (let* ((results (org-ref-get-bibtex-key-and-file key))
+         (bibfile (cdr results)))
+    (with-temp-buffer
+      (insert-file-contents bibfile)
+      (bibtex-set-dialect (parsebib-find-bibtex-dialect) t)
+      (bibtex-search-entry key nil 0)
+      (prog1 (reftex-get-bib-field field (bibtex-parse-entry t))))))
+
+
+(defun literature-extract-doi-from-pdf (pdf)
+  "Try to extract a doi from a PDF file.
+There may be more than one doi in the file. If so, we return the
+one that shows up the most. Thus, if there's a tie, we return all
+the ones that tie.
+
+If there is a trailing . we chomp it off. Returns a list of doi
+strings, or nil.
+
+Based on org-ref-extract-doi-from-pdf, the only change is that I
+want the doi that shows up the most instead of each that shows up.
+"
+  (with-temp-buffer
+    (insert (shell-command-to-string (format "%s %s -"
+					     pdftotext-executable
+					     (shell-quote-argument (dnd-unescape-uri pdf)))))
+    (goto-char (point-min))
+    (let ((matches '()))
+      (while (re-search-forward org-ref-pdf-doi-regex nil t)
+	;; I don't know how to avoid a trailing . on some dois with the
+	;; expression above, so if it is there, I chomp it off here.
+	(let ((doi (match-string 1)))
+	  (when (s-ends-with? "." doi)
+	    (setq doi (substring doi 0 (- (length doi) 1))))
+	  (push doi matches)))
+      ;; this bit is based on code from
+      ;; http://stackoverflow.com/questions/6050033/elegant-way-to-count-items
+      (let (result)
+	(dolist (elt matches result)
+	  (let ((sofar (assoc elt result)))
+	    (if sofar
+		(setcdr sofar (1+ (cdr sofar)))
+	      (push (cons elt 1) result))))
+	(car (car (sort result (lambda (a b) (> (cdr a) (cdr b))))))))))
+
+;;; add_bib:
+;; 1. load in bibtex and for each entry, check if key is already in literature.bib
+;; 2. skip those already in
+;; 3. check if each entry has a file field and that points to a file there
+;; 4. for each that does, call setup_with_file
+;; 5. for each that doesn't, call setup_no_file
+;; 6. call git_update_commit
+(defun literature-add-bib)
+
+(defun literature-setup-files (key bib-contents &optional pdf)
+  "Given the key, contents of the bib file, and the associated
+  pdf file (if present), this function creates the directory for
+  this entry (directory's name will be key and it will be
+  contained within literature-paper-directory), save a new .bib
+  file there containing bib-contents, move the pdf file if
+  present, and create the .org notes file. We also update the
+  file and notefile fields of the .bib"
+  (let ((entry-dir (concat literature-paper-directory key "/")))
+    (make-directory entry-dir)
+    (with-current-buffer
+	(find-file-noselect (concat entry-dir key ".bib"))
+      (insert bib-contents)
+      (bibtex-mode)
+      (bibtex-beginning-of-entry)
+      (bibtex-set-field "notefile" (concat key ".org"))
+      ;; Add the file field if we have a pdf
+      (when pdf
+	(bibtex-set-field "file" (concat ":" key ".pdf:PDF")))
+      (bibtex-beginning-of-entry)
+      (save-buffer)
+      (let ((entry (bibtex-parse-entry t)))
+	(with-current-buffer
+	    (find-file-noselect (concat entry-dir key ".org"))
+	  (org-mode)
+	  (insert "#+STARTUP: showall\n")
+	  (org-insert-todo-heading t)
+	  (insert (reftex-get-bib-field "title" entry))
+	  (insert "\n\n** Keywords")
+	  (insert "\n\n\n** Notes")
+	  (insert "\n\n\n** Annotations")
+	  (insert "\n\n\n** Links")
+	  ;; Only do this if we have pdf
+	  (when pdf
+	    (newline)
+	    (indent-relative)
+	    (insert (concat "PDF: [[file:" key ".pdf]]")))
+	  (cl-loop for elt in '(("Bibtex" . "bib") ("Notes" . "org")) do
+		   (newline)
+		   (indent-relative)
+		   (insert (concat (car elt) ": [[file:" key "." (cdr elt) "]]"))
+		   )
+	  (outline-up-heading 2)
+	  (org-set-property "ADDED" (format-time-string "[%Y-%m-%d]"))
+	  (org-set-property "BIBTEX-KEY" key)
+	  ;; the author field may contain extra newlines and
+	  ;; whitespace characters, so if we do, we remove them.
+	  (org-set-property "AUTHOR"
+			    (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "author" entry)))
+	  (org-set-property "YEAR" (reftex-get-bib-field "year" entry))
+ 	  (org-set-property "PUBLICATION" (reftex-get-bib-field "journal" entry))
+	  (save-buffer)
+	  ))
+      )
+    ;; If we have a pdf, move it in 
+    (when pdf
+      (rename-file pdf (concat entry-dir key ".pdf")))
+    (if pdf
+	(git-update-commit
+	 '((concat entry-dir key ".bib") (concat entry-dir key ".org") (concat entry-dir key ".pdf"))
+	 nil)
+      (git-update-commit
+       '((concat entry-dir key ".bib") (concat entry-dir key ".org"))
+       nil)
+      )
     )
-(setq org-ref-get-pdf-filename-function 'my/find-one-pdf)
+  (literature-add-to-master-bib key)
+  (literature-add-to-master-org key)
+  )
 
-;; Over-write the bibtex-completion-edit-notes function, because we
-;; format the entries as KEY/KEY.org in bibtex-completion-notes-path,
-;; which there's currently no support for.
-(eval-after-load 'helm-bibtex		
-  '(defun bibtex-completion-edit-notes (key)
-     "Open the notes associated with the entry key (using `find-file'). Will look for \"KEY/KEY/org\" in `bibtex-completion-notes-path'."
-     (if (f-directory? bibtex-completion-notes-path)
-	 ;; One notes file per publication: just open the file.
-	 (let ((path (f-join bibtex-completion-notes-path
-			     (s-concat key "/" key bibtex-completion-notes-extension))))
-	   (find-file path)
-	   (unless (f-exists? path)
-	     (insert (s-format bibtex-completion-notes-template-multiple-files
-			       'bibtex-completion-apa-get-value
-			       (bibtex-completion-get-entry key)))))
-       (unless (and buffer-file-name
-		    (f-same? bibtex-completion-notes-path buffer-file-name))
-	 (find-file-other-window bibtex-completion-notes-path))
-       (widen)
-       (show-all)
+;;; for changing links, I have regex to do so.
+
+;;; master_bib_add
+;; 1. make master bib writeable
+;; 2. move new bib into master bib
+;; 3. change file and notefile fields to key/key.ext from key.ext
+;; 4. sort.
+;; 5. make read-only
+(defun literature-add-to-master-bib (key)
+  "This file adds the new bibtex entry (corresponding to KEY,
+  found at literature-paper-dir/key/key.bib) to the master
+  bibliography file, specified by literature-master-bib. It DOES
+  NOT double-check whether the key already exists first, since
+  it's assumed that has been done before calling this."
+  (save-window-excursion
+    (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
+     (set-file-modes master-bib-path #o666)
+     (find-file (concat literature-paper-directory key "/" key ".bib"))
+     ;; We take the contents of the bib file, replace the file and
+     ;; notefile fields so they're correct
+     (let* ((bib-contents (buffer-substring-no-properties (point-min) (point-max)))
+	    (bib-contents
+	     (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3" bib-contents))
+	    (bib-contents
+	     (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3" bib-contents)))
+       (kill-buffer)
+       (find-file master-bib-path)
+       (goto-char (point-max))
+       (insert bib-contents)
+       (bibtex-sort-buffer)
+       (save-buffer)
+       (kill-buffer)
+       )
+     (set-file-modes master-bib-path #o444))
+    )
+  )
+
+;;; master_org_add
+;; 1. make master org writeable
+;; 2. move new org into master org
+;; 3. change links from key.ext to key/key.ext
+;; 4. sort
+;; 5. make read-only
+(defun literature-add-to-master-org (key)
+  "This file adds the new notes entry (corresponding to KEY,
+  found at literature-paper-dir/key/key.org) to the master
+  notes file, specified by literature-master-org. It DOES
+  NOT double-check whether the entry already exists first, since
+  it's assumed that has been done before calling this."
+  (save-window-excursion
+    (let ((master-org-path (concat literature-paper-directory literature-master-org)))
+     (set-file-modes master-org-path #o666)
+     (find-file (concat literature-paper-directory key "/" key ".org"))
+     ;; We take the contents of the org file, replacing the various
+     ;; links so they're correct. We also remove any STARTUP options,
+     ;; because we don't need to copy those over.
+     (let* ((org-contents (buffer-substring-no-properties (point-min) (point-max)))
+	    (org-contents
+	     (replace-regexp-in-string "file:\\(.*\\)\\.\\(.*\\)" "file:\\1/\\1.\\2" org-contents))
+	    (org-contents
+	     (replace-regexp-in-string "#\\+STARTUP:.*" "" org-contents)))
+       (kill-buffer)
+       (find-file master-org-path)
+       (goto-char (point-max))
+       (insert org-contents)
+       (insert "\n\n")
        (goto-char (point-min))
-       (if (re-search-forward (format bibtex-completion-notes-key-pattern key) nil t)
-                                        ; Existing entry found:
-	   (when (eq major-mode 'org-mode)
-	     (org-narrow-to-subtree)
-	     (re-search-backward "^\*+ " nil t)
-	     (org-cycle-hide-drawers nil)
-	     (bibtex-completion-notes-mode 1))
-                                        ; Create a new entry:
-	 (let ((entry (bibtex-completion-get-entry key)))
-	   (goto-char (point-max))
-	   (insert (s-format bibtex-completion-notes-template-one-file
-			     'bibtex-completion-apa-get-value
-			     entry)))
-	 (when (eq major-mode 'org-mode)
-	   (org-narrow-to-subtree)
-	   (re-search-backward "^\*+ " nil t)
-	   (org-cycle-hide-drawers nil)
-	   (goto-char (point-max))
-	   (bibtex-completion-notes-mode 1))))))
+       (org-sort-entries nil ?r nil nil "BIBTEX-KEY")
+       (save-buffer)
+       (kill-buffer)
+       )
+     (set-file-modes master-org-path #o444))
+    )
+  )
+'("a" "b")
+(mapconcat 'identity '("a" "b" "c") " ")
+(concat "Adds " (mapconcat 'identity '("a" "b" "c") " "))
+;;; git_update_commit
+;; 1. takes two lists, one of files to add one of files to remove
+;; 2. (we still just call magit-stage-file for both)
+;; 3. stage files, commit (w/ message) and push
+;;; ACTUALLY, I don't think this is necessary because I have
+;;; git-autocommit set up. Nope, it's necessary for the new files.
+(defun git-update-commit (files rmflag)
+  (cl-loop for f in files do
+	   (magit-stage-file f)
+	   )
+  (if rmflag
+      (magit-run-git-with-input "commit" "-m" (concat "Removes " (mapconcat 'identity files ", ")))
+    ((magit-run-git-with-input "commit" "-m" (concat "Adds " (mapconcat 'identity files ", "))))
+  (magit-run-git-with-input "push" "origin" "master")
+  )
 
+;;; update
+;; 1. get updated time for master bib and master org, make them writeable.
+;; 2. for every entry in the master bib:
+;;    1. if it's directory isn't there, remove from master bib, master org
+;;    2. if pdf exists and has been modified more recently than master org,
+;;       update annotations in individual org
+;;    3. if org has been modified more recently than master org, copy
+;;       individual to master org
+;;    4. if bib has been modified more recently than master bib, copy
+;;       individual to master bib
+;; 3. make master files read-only
 
+;;; force_renew? may also just leave that as python. meh, probably shouldn't.
 
-;;Custom function to open the individual notes file
-(add-to-list 'org-ref-helm-user-candidates
-	     '("Open individual notes file" . (lambda ()
-						(bibtex-completion-edit-notes (car (org-ref-get-bibtex-key-and-file))))))
-
-
+;;; literature.el ends here
