@@ -74,7 +74,6 @@ within your literature-paper-directory."
 
 ;; tests
 (literature-add-file "/home/billbrod/Downloads/PNAS-2016-Chadwick-1610686113.pdf")
-(literature-add-file "/home/billbrod/Downloads/Winkler2016.pdf")
 (literature-add-file "/home/billbrod/Downloads/VerhagenWagenmakers2014.pdf")
 (literature-add-file "/home/billbrod/Downloads/071076.full.pdf")
 
@@ -98,6 +97,14 @@ and .bib files. Any other file typ ewill cause an exception"
 ;; 4. call setup_with_file
 ;; 5. call git_update_commit
 (defun literature-add-pdf (file)
+  "Add a pdf file to your bibliography. For this to work, the pdf
+file needs to contain a doi that can be reliably extracted (if
+there are multiple dois found in the document, we use the one
+that shows up the most) and the doi needs to be usable for
+grabbing a bibtex entry. In case either of these are false, this
+function will throw an error and you'll need to download the .bib
+yourself; you should then call literature-add-bib to add it to
+your bibliography."
   ;; to get the moving around within the bibtex buffer working,
   ;; biblio-synchronous needs to be true
   (let ((doi (literature-extract-doi-from-pdf file)) (biblio-synchronous t))
@@ -135,10 +142,12 @@ and .bib files. Any other file typ ewill cause an exception"
      ;; of the buffer, which aren't helpful.
      (let ((bib-contents (buffer-substring-no-properties (point-min) (point-max)))
 	   (key (literature-get-key-from-bibtex)))
-       ;;and call the stuff to set it up.
+       ;;and call the stuff to set it up. This will create the new
+       ;;files, move over the pdf, add the entries to the master bib
+       ;;and org files, and stage, commit, and push the new changes to
+       ;;git.
        (literature-setup-files key bib-contents file)
        )
-     ;; and finally we push things to git
      )
     ))
 
@@ -234,7 +243,25 @@ want the doi that shows up the most instead of each that shows up.
 ;; 4. for each that does, call setup_with_file
 ;; 5. for each that doesn't, call setup_no_file
 ;; 6. call git_update_commit
-(defun literature-add-bib)
+(defun literature-add-bib (file)
+  ""
+  (with-temp-buffer
+    (insert-file-contents file)
+    (beginning-of-buffer)
+    ;; want to use while here to say as long as there's an entry. But
+    ;; I also ideally will have some reference to the contents of the
+    ;; entry, so I can alert the user. Maybe loop through the entries,
+    ;; parsing them? that way I can refer to the title to point out
+    ;; what's going on.
+    (condition-case nil
+	(org-ref-clean-bibtex-entry)
+      ('error (message (format "Unable to properly format entry"))))
+    ;; In this loop, after we clean the entry, we check if it's
+    ;; already in our bibliographies. If yes, do nothing else. If no,
+    ;; check if it has a file field and grab it if it does. Then call
+    ;; setup-files, with or without the contents of the file field.
+    )
+  )
 
 (defun literature-setup-files (key bib-contents &optional pdf)
   "Given the key, contents of the bib file, and the associated
@@ -380,9 +407,7 @@ want the doi that shows up the most instead of each that shows up.
      (set-file-modes master-org-path #o444))
     )
   )
-'("a" "b")
-(mapconcat 'identity '("a" "b" "c") " ")
-(concat "Adds " (mapconcat 'identity '("a" "b" "c") " "))
+
 ;;; git_update_commit
 ;; 1. takes two lists, one of files to add one of files to remove
 ;; 2. (we still just call magit-stage-file for both)
@@ -390,13 +415,22 @@ want the doi that shows up the most instead of each that shows up.
 ;;; ACTUALLY, I don't think this is necessary because I have
 ;;; git-autocommit set up. Nope, it's necessary for the new files.
 (defun git-update-commit (files rmflag)
-  (cl-loop for f in files do
-	   (magit-stage-file f)
-	   )
-  (if rmflag
-      (magit-run-git-with-input "commit" "-m" (concat "Removes " (mapconcat 'identity files ", ")))
-    ((magit-run-git-with-input "commit" "-m" (concat "Adds " (mapconcat 'identity files ", "))))
-  (magit-run-git-with-input "push" "origin" "master")
+  "stage FILES, make a new commit (noting they were added if
+rmflag is nil and removed if rmflag is t) and push the change to
+origin master."
+  (save-window-excursion
+    (cl-loop for f in files do
+	     (find-file f)
+	     (magit-stage-file f)
+	     (kill-buffer)
+	     )
+    (find-file (car files))
+    (if rmflag
+	(magit-run-git-with-input "commit" "-m" (concat "Removes " (mapconcat 'identity files ", ")))
+      (magit-run-git-with-input "commit" "-m" (concat "Adds " (mapconcat 'identity files ", ")))
+      )    
+    (magit-run-git-with-input "push" "origin" "master")
+    (kill-buffer))
   )
 
 ;;; update
