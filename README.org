@@ -20,10 +20,10 @@
    If you're going to use this with Emacs, you'll need the following
    emacs packages (all can be installed from MELPA)
 
-   - bibtex-utils
-   - org-ref
-   - helm-bibtex
-   - biblio
+   * bibtex-utils
+   * org-ref
+   * helm-bibtex
+   * biblio
 
 * Set-up
 
