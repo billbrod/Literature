@@ -28,6 +28,15 @@
 (setq bibtex-completion-notes-extension ".org")
 (setq bibtex-completion-additional-search-fields '(journal))
 
+(setq bibtex-autokey-year-length 4
+      bibtex-autokey-name-year-separator ""
+      bibtex-autokey-year-title-separator "-"
+      bibtex-autokey-titleword-separator "-"
+      bibtex-autokey-titlewords 2
+      bibtex-autokey-titlewords-stretch 1
+      bibtex-autokey-titleword-length 5
+      bibtex-autokey-name-case-convert 'capitalize)
+
 ;;; Literature configuration options. These should probably coordinate
 ;;; with your helmb-bitex and org-ref options.
 (setq literature-paper-directory "/home/billbrod/Org-Docs/Papers/")

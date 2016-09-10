@@ -39,36 +39,9 @@
 
 (literature-get-annotations "/home/billbrod/Org-Docs/Papers/Brouwer2009/Brouwer2009.pdf")
 
-(doi-insert-bibtex "10.3389/fninf.2014.00014")
-
-;;; this will make the org-ref-clean-bibtex-entry do what I want.
-(setq bibtex-autokey-year-length 4
-      bibtex-autokey-name-year-separator ""
-      bibtex-autokey-titlewords 2
-      bibtex-autokey-name-case-convert 'capitalize)
-(setq bibtex-autokey-year-length 4
-      bibtex-autokey-name-year-separator ""
-      bibtex-autokey-year-title-separator "-"
-      bibtex-autokey-titleword-separator "-"
-      bibtex-autokey-titlewords 2
-      bibtex-autokey-titlewords-stretch 1
-      bibtex-autokey-titleword-length 5
-      bibtex-autokey-name-case-convert 'capitalize)
-
-;; can cut and paste bib file into literature.bib, then run
-;; bibtex-sort-buffer.
-
-;; to sort org file: (org-sort-entries nil ?r nil nil "BIBTEX-KEY")
-
 ;;there are various org subtree commands to manipulate subtrees, edit
 ;;properties, set tags, and move through headings, so can use that for
 ;;adding and updating org notes.
-
-;; I should be able to write a function that just creates a simple org
-;; file given a key to use as filename (follow this idea
-;; http://emacs.stackexchange.com/questions/14673/emacs-function-to-make-a-file-with-date-time-as-filename-and-a-shortcut-for-it)
-;; there are org functions for org-insert-heading and
-;; org-insert-subheading
 
 ;; can use fill-paragraph-or-region to get wrap
 
@@ -82,28 +55,3 @@
 ;;; bibtex-mark-entry, kill-region, then move to end of
 ;;; literature.bib, yank, and sort. also, make a new file and yank
 ;;; there. use rename-file to move pdf file into directory
-
-;;; add files, commit, and push
-(magit-stage-file "literature.el")
-(magit-run-git-with-input "commit" "-m" "literature.el")
-(magit-run-git-with-input "push" "origin" "master")
-
-;;; To remove a file, do this.
-(delete-file "test.txt")
-(magit-stage-file "test.txt")
-
-;; can be inspired by how org-ref-get-citation-year does it to get
-;; other bibtex fields. reftex-get-bib-field works, but I have a hard
-;; time getting the entry as necessary.
-(org-ref-get-citation-year "Abbott2008")
-
-;;; The following will return nil if it's not in the literature.bib,
-;;; and a path if it is.
-(cdr (org-ref-get-bibtex-key-and-file "Abbott2008"))
-(org-ref-key-in-file-p "Bak1987" (car org-ref-default-bibliography))
-
-(set-file-modes "/home/billbrod/tmp.bib" #o666)
-
-(literature-get-citation-field "title" "Abbott2008")
-
-;;; to make something read-only and not, use (chmod filename mode).
