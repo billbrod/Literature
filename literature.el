@@ -64,15 +64,8 @@ within your literature-paper-directory."
 ;;; Functions:
 
 (setq literature-paper-directory "/home/billbrod/Org-Docs/Papers/")
-;; (setq literature-master-bib "tmp.bib")
 (setq literature-master-bib "literature.bib")
-;; (setq literature-master-org "tmp.org")
 (setq literature-master-org "literature.org")
-
-;; tests
-(literature-add-file "/home/billbrod/Downloads/PNAS-2016-Chadwick-1610686113.pdf")
-(literature-add-file "/home/billbrod/Downloads/VerhagenWagenmakers2014.pdf")
-(literature-add-file "/home/billbrod/Downloads/071076.full.pdf")
 
 (defun literature-add-file (file)
   "Add a file to your bibliography. Accepts pdfs (in which case
@@ -316,12 +309,12 @@ the file field is present)."
     )
   )
 
-(defun literature-setup-files (key bib-contents &optional pdf)
+(defun literature-setup-files (key bib-contents &optional filepath)
   "Given the key, contents of the bib file, and the associated
-  pdf file (if present), this function creates the directory for
+  file (if present), this function creates the directory for
   this entry (directory's name will be key and it will be
   contained within literature-paper-directory), save a new .bib
-  file there containing bib-contents, move the pdf file if
+  file there containing bib-contents, move the file if
   present, and create the .org notes file. We also update the
   file and notefile fields of the .bib"
   (let ((entry-dir (concat literature-paper-directory key "/")))
@@ -334,9 +327,12 @@ the file field is present)."
       ;; Set the notefile and (if necessary) file fields to the
       ;; appropriate values.
       (bibtex-set-field "notefile" (concat key ".org"))
-      ;; Add the file field if we have a pdf
-      (when pdf
-	(bibtex-set-field "file" (concat ":" key ".pdf:PDF")))
+      ;; Add the file field if we have a file
+      (when filepath
+	(if (string= "pdf" (file-name-extension filepath))
+	    (bibtex-set-field "file" (concat ":" key ".pdf:PDF"))
+	  (bibtex-set-field "file" (concat ":" key "." (file-name-extension filepath) ":"))
+	  ))
       (bibtex-beginning-of-entry)
       (save-buffer)
       ;; Create the note file
@@ -351,11 +347,15 @@ the file field is present)."
 	  (insert "\n\n\n** Notes")
 	  (insert "\n\n\n** Annotations")
 	  (insert "\n\n\n** Links")
-	  ;; Only do this if we have pdf
-	  (when pdf
+	  ;; Only do this if we have a file
+	  (when filepath
 	    (newline)
 	    (indent-relative)
-	    (insert (concat "PDF: [[file:" key ".pdf]]")))
+	    (if (string= "pdf" (file-name-extension filepath))
+		(insert (concat "PDF: [[file:" key ".pdf]]"))
+	      (insert (concat "File: [[file:" key "." (file-name-extension filepath) "]]"))
+	      )
+	    )
 	  (cl-loop for elt in '(("Bibtex" . "bib") ("Notes" . "org")) do
 		   (newline)
 		   (indent-relative)
@@ -373,14 +373,14 @@ the file field is present)."
 	  (save-buffer)
 	  ))
       )
-    ;; If we have a pdf, move it in 
-    (when pdf
-      (rename-file pdf (concat entry-dir key ".pdf")))
+    ;; If we have a file, move it in 
+    (when filepath
+      (rename-file filepath (concat entry-dir key "." (file-name-extension filepath))))
     ;; the number of files we add to the git repo depends on whether
-    ;; we have a pdf or not.
-    (if pdf
+    ;; we have a file or not.
+    (if filepath
 	(git-update-commit
-	 (list (concat entry-dir key ".bib") (concat entry-dir key ".org") (concat entry-dir key ".pdf"))
+	 (list (concat entry-dir key ".bib") (concat entry-dir key ".org") (concat entry-dir key "." (file-name-extension filepath)))
 	 nil)
       (git-update-commit
        (list (concat entry-dir key ".bib") (concat entry-dir key ".org"))
@@ -401,8 +401,8 @@ the file field is present)."
     (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
       ;; If the master bib is already open in a buffer, it can
       ;; interfere with setting read-only or writeable.
-      (if (get-buffer master-bib-path)
-	  (kill-buffer master-bib-path))
+      (if (get-buffer literature-master-bib)
+	  (kill-buffer literature-master-bib))
       (set-file-modes master-bib-path #o666)
       (find-file (concat literature-paper-directory key "/" key ".bib"))
       ;; We take the contents of the bib file, replace the file and
@@ -436,8 +436,8 @@ the file field is present)."
     (let ((master-org-path (concat literature-paper-directory literature-master-org)))
       ;; If the master org is already open in a buffer, it can
       ;; interfere with setting read-only or writeable.
-      (if (get-buffer master-org-path)
-	  (kill-buffer master-org-path))
+      (if (get-buffer literature-master-org)
+	  (kill-buffer literature-master-org))
       (set-file-modes master-org-path #o666)
       (find-file (concat literature-paper-directory key "/" key ".org"))
       ;; We take the contents of the org file, replacing the various
