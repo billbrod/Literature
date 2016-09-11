@@ -63,6 +63,7 @@ within your literature-paper-directory."
 
 ;;; Functions:
 
+;;;###autoload
 (defun literature-add-file (file)
   "Add a file to your bibliography. Accepts pdfs (in which case
 we attempt to automatically get the bibtex by extracting the doi)
@@ -76,6 +77,7 @@ and .bib files. Any other file type will cause an exception"
 	)
   )
 
+;;;###autoload
 (defun literature-add-pdf (file)
   "Add a pdf file to your bibliography. For this to work, the pdf
 file needs to contain a doi that can be reliably extracted (if
@@ -130,7 +132,7 @@ your bibliography."
      )
     ))
 
-
+;;;###autoload
 (defun literature-check-key (key &optional file throwname)
   "Check whether the key is found in your bibliographies and, if
 so, notify the user (either via error or message and throw). One
@@ -146,6 +148,7 @@ then throw to the named catch."
     )
   )
 
+;;;###autoload
 (defun literature-check-doi (doi &optional file throwname)
   "Based on the end of doi-utils-add-bibtex-entry-from-doi, we
 check whether the doi is already in one of the bibliography files
@@ -168,6 +171,7 @@ print a message instead, then throw to the named catch."
 	   )
   )
 
+;;;###autoload
 (defun literature-try-to-format-bib (&optional file entry throwname)
   "Attempt to run org-ref-clean-bibtex-entry on the entry at
 point. If this fails, notify the user (either via error or
@@ -190,6 +194,7 @@ throw to the named catch."
     )
   )
 
+;;;###autoload
 (defun literature-get-key-from-bibtex ()
   "attempt to get the key from the bibtex entry currently under
   point"
@@ -200,7 +205,7 @@ throw to the named catch."
     (match-string 1))
   )
 
-
+;;;###autoload
 (defun literature-extract-doi-from-pdf (pdf)
   "Try to extract a doi from a PDF file.
 There may be more than one doi in the file. If so, we return the
@@ -236,6 +241,7 @@ want the doi that shows up the most instead of each that shows up.
 	      (push (cons elt 1) result))))
 	(car (car (sort result (lambda (a b) (> (cdr a) (cdr b))))))))))
 
+;;;###autoload
 (defun literature-add-bib (file)
   "Add all bibtex entries in a .bib file to your
 bibliography. This function loops through the entries, attempts
@@ -305,6 +311,7 @@ the file field is present)."
     )
   )
 
+;;;###autoload
 (defun literature-setup-files (key bib-contents &optional filepath)
   "Given the key, contents of the bib file, and the associated
   file (if present), this function creates the directory for
@@ -503,8 +510,8 @@ rmflag is t) and push the change to origin master."
 ;;; org-ref-clean-entry on each bibtex entry, changing folders and
 ;;; path as appropriate.
 
-
-(defun test-bib-files ()
+;;;###autoload
+(defun literature-test-bib-files ()
   "This is a function to test your bib files in case something's
    the matter with your library and helm-bibtex. I ran into an
    error where helm-bibtex would not display my library but also

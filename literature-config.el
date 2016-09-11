@@ -16,6 +16,7 @@
                                   (command-execute 'eshell)
                                   (bury-buffer))))
 
+(add-to-list 'load-path "~/Documents/Literature")
 (require 'literature)
 
 ;;Helm-bibtex configuration options
