@@ -394,72 +394,72 @@ the file field is present)."
   (literature-add-to-master-org key)
   )
 
+;;;###autoload
 (defun literature-add-to-master-bib (key)
-  "This file adds the new bibtex entry (corresponding to KEY,
+  "This function adds the new bibtex entry (corresponding to KEY,
   found at literature-paper-dir/key/key.bib) to the master
   bibliography file, specified by literature-master-bib. It DOES
   NOT double-check whether the key already exists first, since
   it's assumed that has been done before calling this."
-  (save-window-excursion
-    (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
-      (set-file-modes master-bib-path #o666)
-      (with-temp-file master-bib-path
-	(insert-file-contents master-bib-path)
-	;; This ugly chaining is so we can use the regexp only on the
-	;; contents of the bib file we're adding without worrying
-	;; about affecting the rest of the file. They make the links
-	;; work correctly.
-	(insert
-	 (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
-				   (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
-							     (with-temp-buffer
-							       (insert-file-contents (concat literature-paper-directory key "/" key ".bib"))
-							       (buffer-string))))
-	 )
-	(insert "\n")
-	(goto-char (point-min))
-	(bibtex-sort-buffer)
-	)
-      (set-file-modes master-bib-path #o444)
-      (git-update-commit (list master-bib-path) nil)
+  (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
+    (set-file-modes master-bib-path #o666)
+    (with-temp-file master-bib-path
+      (insert-file-contents master-bib-path)
+      ;; This ugly chaining is so we can use the regexp only on the
+      ;; contents of the bib file we're adding without worrying
+      ;; about affecting the rest of the file. They make the links
+      ;; work correctly.
+      (insert
+       (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
+				 (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
+							   (with-temp-buffer
+							     (insert-file-contents (concat literature-paper-directory key "/" key ".bib"))
+							     (buffer-string))))
+       )
+      (insert "\n")
+      (goto-char (point-min))
+      (bibtex-sort-buffer)
       )
+    (set-file-modes master-bib-path #o444)
+    (git-update-commit (list master-bib-path) nil)
     )
+  
   )
 
+;;;###autoload
 (defun literature-add-to-master-org (key)
   "This file adds the new notes entry (corresponding to KEY,
   found at literature-paper-dir/key/key.org) to the master
   notes file, specified by literature-master-org. It DOES
   NOT double-check whether the entry already exists first, since
   it's assumed that has been done before calling this."
-  (save-window-excursion
-    (let ((master-org-path (concat literature-paper-directory literature-master-org)))
-      (set-file-modes master-org-path #o666)
-      (with-temp-file master-org-path
-	(insert-file-contents master-org-path)
-	;; This ugly chaining is so we can use the regexp only on the
-	;; contents of the org file we're adding without worrying
-	;; about affecting the rest of the file. They get rid of any
-	;; startup options in the small file as well as make the links
-	;; work correctly.
-	(insert
-	 (replace-regexp-in-string "#\\+STARTUP:.*" ""
-				   (replace-regexp-in-string "file:\\(.*\\)\\.\\(.*\\)" "file:\\1/\\1.\\2"
-							     (with-temp-buffer
-							       (insert-file-contents (concat literature-paper-directory key "/" key ".org"))
-							       (buffer-string))))
-	 )
-	(insert "\n\n")
-	(goto-char (point-min))
-	(org-sort-entries nil ?r nil nil "BIBTEX-KEY")
+  (let ((master-org-path (concat literature-paper-directory literature-master-org)))
+    (set-file-modes master-org-path #o666)
+    (with-temp-file master-org-path
+      (insert-file-contents master-org-path)
+      ;; This ugly chaining is so we can use the regexp only on the
+      ;; contents of the org file we're adding without worrying
+      ;; about affecting the rest of the file. They get rid of any
+      ;; startup options in the small file as well as make the links
+      ;; work correctly.
+      (insert
+       (replace-regexp-in-string "#\\+STARTUP:.*" ""
+				 (replace-regexp-in-string "file:\\(.*\\)\\.\\(.*\\)" "file:\\1/\\1.\\2"
+							   (with-temp-buffer
+							     (insert-file-contents (concat literature-paper-directory key "/" key ".org"))
+							     (buffer-string))))
        )
-      (set-file-modes master-org-path #o444)
-      (git-update-commit (list master-org-path) nil)
+      (insert "\n\n")
+      (goto-char (point-min))
+      (org-sort-entries nil ?r nil nil "BIBTEX-KEY")
       )
+    (set-file-modes master-org-path #o444)
+    (git-update-commit (list master-org-path) nil)
     )
+  
   )
 
-
+;;;###autoload
 (defun git-update-commit (files rmflag)
   "adds or removes FILES (based on rmflag), make a new
 commit (noting they were added if rmflag is nil and removed if
