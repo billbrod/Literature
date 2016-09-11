@@ -395,30 +395,27 @@ the file field is present)."
   it's assumed that has been done before calling this."
   (save-window-excursion
     (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
-      ;; If the master bib is already open in a buffer, it can
-      ;; interfere with setting read-only or writeable.
-      (if (get-buffer literature-master-bib)
-	  (kill-buffer literature-master-bib))
       (set-file-modes master-bib-path #o666)
-      (find-file (concat literature-paper-directory key "/" key ".bib"))
-      ;; We take the contents of the bib file, replace the file and
-      ;; notefile fields so they're correct
-      (let* ((bib-contents (buffer-substring-no-properties (point-min) (point-max)))
-	     (bib-contents
-	      (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3" bib-contents))
-	     (bib-contents
-	      (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3" bib-contents)))
-	(kill-buffer)
-	(find-file master-bib-path)
-	(goto-char (point-max))
-	(newline)
-	(newline)
-	(insert bib-contents)
+      (with-temp-file master-bib-path
+	(insert-file-contents master-bib-path)
+	;; This ugly chaining is so we can use the regexp only on the
+	;; contents of the bib file we're adding without worrying
+	;; about affecting the rest of the file. They make the links
+	;; work correctly.
+	(insert
+	 (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
+				   (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
+							     (with-temp-buffer
+							       (insert-file-contents (concat literature-paper-directory key "/" key ".bib"))
+							       (buffer-string))))
+	 )
+	(insert "\n")
+	(goto-char (point-min))
 	(bibtex-sort-buffer)
-	(save-buffer)
-	(kill-buffer)
 	)
-      (set-file-modes master-bib-path #o444))
+      (set-file-modes master-bib-path #o444)
+      (git-update-commit (list master-bib-path) nil)
+      )
     )
   )
 
@@ -430,35 +427,31 @@ the file field is present)."
   it's assumed that has been done before calling this."
   (save-window-excursion
     (let ((master-org-path (concat literature-paper-directory literature-master-org)))
-      ;; If the master org is already open in a buffer, it can
-      ;; interfere with setting read-only or writeable.
-      (if (get-buffer literature-master-org)
-	  (kill-buffer literature-master-org))
       (set-file-modes master-org-path #o666)
-      (find-file (concat literature-paper-directory key "/" key ".org"))
-      ;; We take the contents of the org file, replacing the various
-      ;; links so they're correct. We also remove any STARTUP options,
-      ;; because we don't need to copy those over.
-      (let* ((org-contents (buffer-substring-no-properties (point-min) (point-max)))
-	     (org-contents
-	      (replace-regexp-in-string "file:\\(.*\\)\\.\\(.*\\)" "file:\\1/\\1.\\2" org-contents))
-	     (org-contents
-	      (replace-regexp-in-string "#\\+STARTUP:.*" "" org-contents)))
-	(kill-buffer)
-	(find-file master-org-path)
-	(goto-char (point-max))
-	(newline)
-	(newline)
-	(insert org-contents)
+      (with-temp-file master-org-path
+	(insert-file-contents master-org-path)
+	;; This ugly chaining is so we can use the regexp only on the
+	;; contents of the org file we're adding without worrying
+	;; about affecting the rest of the file. They get rid of any
+	;; startup options in the small file as well as make the links
+	;; work correctly.
+	(insert
+	 (replace-regexp-in-string "#\\+STARTUP:.*" ""
+				   (replace-regexp-in-string "file:\\(.*\\)\\.\\(.*\\)" "file:\\1/\\1.\\2"
+							     (with-temp-buffer
+							       (insert-file-contents (concat literature-paper-directory key "/" key ".org"))
+							       (buffer-string))))
+	 )
 	(insert "\n\n")
 	(goto-char (point-min))
 	(org-sort-entries nil ?r nil nil "BIBTEX-KEY")
-	(save-buffer)
-	(kill-buffer)
-	)
-      (set-file-modes master-org-path #o444))
+       )
+      (set-file-modes master-org-path #o444)
+      (git-update-commit (list master-org-path) nil)
+      )
     )
   )
+
 
 (defun git-update-commit (files rmflag)
   "stage FILES, make a new commit (noting they were added if
@@ -473,7 +466,7 @@ origin master."
     (find-file (car files))
     (if rmflag
 	(magit-run-git-with-input "commit" "-m" (concat "Removes " (mapconcat 'identity files ", ")))
-      (magit-run-git-with-input "commit" "-m" (concat "Adds " (mapconcat 'identity files ", ")))
+      (magit-run-git-with-input "commit" "-m" (mapconcat 'identity files ", "))
       )    
     (magit-run-git-with-input "push" "origin" "master")
     (kill-buffer))
