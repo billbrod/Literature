@@ -454,22 +454,32 @@ the file field is present)."
 
 
 (defun git-update-commit (files rmflag)
-  "stage FILES, make a new commit (noting they were added if
-rmflag is nil and removed if rmflag is t) and push the change to
-origin master."
-  (save-window-excursion
-    (cl-loop for f in files do
-	     (find-file f)
-	     (magit-stage-file f)
-	     (kill-buffer)
-	     )
-    (find-file (car files))
-    (if rmflag
-	(magit-run-git-with-input "commit" "-m" (concat "Removes " (mapconcat 'identity files ", ")))
-      (magit-run-git-with-input "commit" "-m" (mapconcat 'identity files ", "))
-      )    
-    (magit-run-git-with-input "push" "origin" "master")
-    (kill-buffer))
+  "adds or removes FILES (based on rmflag), make a new
+commit (noting they were added if rmflag is nil and removed if
+rmflag is t) and push the change to origin master."
+  (with-temp-buffer
+    ;; We build up one large command to pass to the shell
+    (shell-command
+     ;; We first must cd to the directory containing this file so our
+     ;; git changes happen in the right repo
+     (concat "cd " (shell-quote-argument (file-name-directory (car files)))
+	     ;; We then remove or add all the files. mapconcat will
+	     ;; place ' && git rm/add ' between each entry of files,
+	     ;; but to get it at the beginning I think I need to lead
+	     ;; with one.
+	     (if rmflag
+		 (concat " && git rm " (shell-quote-argument (mapconcat 'identity files " && git rm ")))
+	       (concat " && git add " (shell-quote-argument (mapconcat 'identity files " && git add "))))
+	     ;; We now create the commit message in a similar way,
+	     ;; adding quotes so the spaces don't confuse git.
+	     " && git commit -m \""
+	     (when rmflag
+	       "Removes ")
+	     (shell-quote-argument (mapconcat 'identity files ", "))
+	     ;; And finally push to origin master
+	     "\" && git push origin master")
+     )
+    )
   )
 
 ;;; update
