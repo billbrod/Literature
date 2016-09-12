@@ -475,8 +475,8 @@ rmflag is t) and push the change to origin master."
 	     ;; but to get it at the beginning I think I need to lead
 	     ;; with one.
 	     (if rmflag
-		 (concat " && git rm " (shell-quote-argument (mapconcat 'identity files " && git rm ")))
-	       (concat " && git add " (shell-quote-argument (mapconcat 'identity files " && git add "))))
+		 (concat " && git rm " (mapconcat 'shell-quote-argument files " && git rm "))
+	       (concat " && git add " (mapconcat 'shell-quote-argument files " && git add ")))
 	     ;; We now create the commit message in a similar way,
 	     ;; adding quotes so the spaces don't confuse git.
 	     " && git commit -m \""
