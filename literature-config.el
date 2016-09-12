@@ -1,9 +1,8 @@
 ;;To use this, make sure the paths in literature-update, literature-add, and the helm-bibtex configurations are all correct
 
-(defun literature-update ()
-  "Updates the master literature bib and org files"
-  (interactive)
-  (shell-command "~/anaconda2/bin/python ~/Documents/Literature/lit_update.py"))
+(add-to-list 'load-path "~/Documents/Literature")
+(require 'literature)
+
 (global-set-key (kbd "s-u") 'literature-update)
 (add-hook 'kill-emacs-hook 'literature-update)
 
@@ -15,9 +14,6 @@
                                 (let ((default-directory (getenv "HOME")))
                                   (command-execute 'eshell)
                                   (bury-buffer))))
-
-(add-to-list 'load-path "~/Documents/Literature")
-(require 'literature)
 
 ;;Helm-bibtex configuration options
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
