@@ -475,7 +475,7 @@ rmflag is t) and push the change to origin master."
     ;; if files is empty, we don't do anything.
     (with-temp-buffer
       ;; We build up one large command to pass to the shell
-      (shell-command
+      (async-shell-command
        ;; We first must cd to the directory containing this file so our
        ;; git changes happen in the right repo
        (concat "cd " (shell-quote-argument (file-name-directory (car files)))
@@ -531,10 +531,13 @@ to fix them, use literature-force-renew.
     (with-temp-buffer
       (insert-file-contents master-bib-path)
       (goto-char (point-min))
+      (bibtex-mode)
+      (bibtex-set-dialect)
       (while (not (eobp))
 	(let* ((entry (bibtex-parse-entry t))
 	       (key (literature-get-key-from-bibtex))
 	       (entrydir (concat literature-paper-directory key)))
+	  (message key)
 	  ;; when the directory for a given key doesn't exists, we
 	  ;; remove it from the master org and bib files
 	  (unless (file-exists-p entrydir)
