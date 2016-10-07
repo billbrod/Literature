@@ -741,12 +741,19 @@ bib are staged and committed."
 ;; This section contains some code to make org-ref and helm-bibtex
 ;; work well with the structure of my bibliography.
 
-;; We need this because org-ref-get-pdf-filename-function expects one
-;; pdf, but bibtex-completion-find-pdf returns a list containing one
-;; filename. So, using car, we grab the first item in that list and
-;; return it.
+
 (defun my/find-one-pdf (key)
-  (car (bibtex-completion-find-pdf key))
+  "We need this because org-ref-get-pdf-filename-function expects
+   one pdf, but bibtex-completion-find-pdf returns a list
+   containing one filename. So, using car, we grab the first item
+   in that list and return it. If there is nothing, we return
+   'not found', so it's not nil, because that runs into issues
+   with org-ref-cite-candidates"
+  (let ((pdf-file (car (bibtex-completion-find-pdf key))))
+    (if pdf-file
+	pdf-file
+      "not found")
+       )
   )
 
 (setq org-ref-get-pdf-filename-function 'my/find-one-pdf)
