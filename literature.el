@@ -763,7 +763,7 @@ bib are staged and committed."
 ;; which there's currently no support for.
 (eval-after-load 'helm-bibtex		
   '(defun bibtex-completion-edit-notes (keys)
-     "Open the notes associated with the selected entries using `find-file'."
+     "Open the notes associated with the selected entries (at KEY/KEY.org) using `find-file'."
      (dolist (key keys)
        (if (and bibtex-completion-notes-path
 		(f-directory? bibtex-completion-notes-path))
@@ -805,9 +805,11 @@ bib are staged and committed."
 
 ;;Custom function to open the individual notes file
 (add-to-list 'org-ref-helm-user-candidates
-	     '("Open individual notes file" . (lambda ()
-						(bibtex-completion-edit-notes (car (org-ref-get-bibtex-key-and-file))))))
-
+	     '("Open individual notes file" .
+	       (lambda ()
+		 (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
+		   (bibtex-completion-edit-notes
+		    (list (car (org-ref-get-bibtex-key-and-file))))))))
 
 (provide 'literature)
 
