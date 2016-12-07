@@ -49,34 +49,6 @@
   the highlighted file (you can mark multiple files and then
   ~literature-add-file~ will be run on them one after the other).
 
-* Usage
-
-  After following [[*Set-up][set-up]] above, open up ipython and run
-  ~mendeley_to_org.main()~ without any arguments. This should print out
-  updates for each key found in the bibtex file, with what it found
-  and where it ended up saved. This does not, currently remove the
-  file from either the Unsorted directory (if an annotated file was
-  found) or the Mendeley document directory. I do this in case
-  something goes wrong, so it's easier to re-run.
-
-  After this, you should be ready to start reading and editing your
-  pdfs as you wish. Any changes you make to the local pdf, bib, or org
-  files will be reflected in the master ones by running
-  ~lit_update.update()~. 
-
-  If you want to add a new file or entry to your library, run (from
-  the command line) ~python lit_add.py file~, or (from python)
-  ~lit_add.add_pdf(file)~ or ~lit_add.add_bib(file)~ for pdfs and
-  bibtex files, respectively. This will set up the directories,
-  creating a bib file if it can find the information and an org notes
-  file. If you want to add a bib file without an attached file, you
-  can do so (just make sure it doesn't have a file field). If you
-  attempt to add a pdf, lit_add will attempt to extract the doi and
-  retrieve the bib file automatically. If it can't do this, you will
-  need to manually download the bib file, make sure its file field
-  points to the associated pdf, and add that.
-
-
 * Android set-up
   
   This set-up can be made to work on Android, but it takes a tiny
