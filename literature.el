@@ -64,17 +64,18 @@ within your literature-paper-directory."
 ;;; Functions:
 
 ;;;###autoload
-(defun literature-add-file (file)
+(defun literature-add-file ()
   "Add a file to your bibliography. Accepts pdfs (in which case
 we attempt to automatically get the bibtex by extracting the doi)
 and .bib files. Any other file type will cause an exception"
   (interactive)
-  (cond ((equalp (file-name-extension file) "pdf")
-	 (literature-add-pdf file))
-	((equalp (file-name-extension file) "bib")
-	 (literature-add-bib file))
-	(t (display-warning :warning "Only files with a pdf or bib extension are accepted"))
-	)
+  (let ((file buffer-file-name))
+   (cond ((equalp (file-name-extension file) "pdf")
+	  (literature-add-pdf file))
+	 ((equalp (file-name-extension file) "bib")
+	  (literature-add-bib file))
+	 (t (display-warning :warning "Only files with a pdf or bib extension are accepted"))
+	 ))
   )
 
 ;;;###autoload

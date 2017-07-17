@@ -6,14 +6,7 @@
 (global-set-key (kbd "s-u") 'literature-update)
 (add-hook 'kill-emacs-hook 'literature-update)
 
-;; From https://github.com/emacs-helm/helm/wiki/Find-Files, "Most
-;; Eshell commands are available only after Eshell has been started
-;; once. To start Eshell on Emacs startup, add the following to your
-;; init file:"
-(add-hook 'emacs-startup-hook (lambda ()
-                                (let ((default-directory (getenv "HOME")))
-                                  (command-execute 'eshell)
-                                  (bury-buffer))))
+(global-set-key (kbd "s-a") 'literature-add-file)
 
 ;;Helm-bibtex configuration options
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
