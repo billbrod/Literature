@@ -7,6 +7,8 @@
 (add-hook 'kill-emacs-hook 'literature-update)
 
 (global-set-key (kbd "s-a") 'literature-add-file)
+(define-key markdown-mode-map (kbd "s-b") 'literature-create-mini-bib)
+(define-key TeX-mode-map (kbd "s-b") 'literature-create-mini-bib)
 
 ;;Helm-bibtex configuration options
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
@@ -55,3 +57,6 @@
 ;; This tell bibtex-completion to look at the File field of the bibtex
 ;; entry to figure out which pdf to open
 (setq bibtex-completion-pdf-field "File")
+
+(setf (alist-get 'markdown-mode bibtex-completion-format-citation-functions) 'bibtex-completion-format-citation-cite)
+(setq bibtex-completion-cite-prompt-for-optional-arguments nil)

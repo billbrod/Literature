@@ -738,6 +738,25 @@ bib are staged and committed."
 	 (setq test-list (cdr test-list)))))
 
 
+;;;###autoload
+(defun literature-create-mini-bib ()
+  "This function searches the current directory for all md and
+  tex files for \cite{KEY} and creates a new file,
+  bibliography/biblio-offline.bib (overwriting if already there),
+  containing the keys found (copied over from your
+  literature-master-bib).  This is to use with authorea."
+  (interactive)
+  (with-temp-file "./bibliography/biblio-offline.bib"
+    (let (keys)
+      (cl-loop for check-file in (append (f-glob "./*md") (f-glob "./*tex")) do
+	       (when-let (matches (mapcar (lambda (x) (elt x 1)) (s-match-strings-all "\cite{\\(.*?\\)}" (with-temp-buffer
+													   (insert-file-contents check-file)
+													   (buffer-string)))))
+			 (push (mapcar (lambda (x) (split-string x ", ")) matches) keys))
+	       )
+      (bibtex-completion-insert-bibtex (delete-dups (eshell-flatten-list keys))))))
+
+
 ;;; CUSTOMIZATION OF EXISTING PACKAGES
 ;; This section contains some code to make org-ref and helm-bibtex
 ;; work well with the structure of my bibliography.
