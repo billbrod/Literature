@@ -18,6 +18,9 @@
 (setq bibtex-completion-notes-extension ".org")
 (setq bibtex-completion-additional-search-fields '(journal))
 
+(setq org-ref-completion-library 'org-ref-ivy-cite)
+(require 'org-ref)
+
 (setq bibtex-autokey-year-length 4
       bibtex-autokey-name-year-separator ""
       bibtex-autokey-year-title-separator "-"
