@@ -7,8 +7,13 @@
 (add-hook 'kill-emacs-hook 'literature-update)
 
 (global-set-key (kbd "s-a") 'literature-add-file)
-(define-key markdown-mode-map (kbd "s-b") 'literature-create-mini-bib)
-(define-key TeX-mode-map (kbd "s-b") 'literature-create-mini-bib)
+
+(eval-after-load 'markdown-mode
+  '(progn
+     (define-key markdown-mode-map (kbd "s-b") 'literature-create-mini-bib)))
+(eval-after-load 'tex-mode-mode
+  '(progn
+     (define-key TeX-mode-map (kbd "s-b") 'literature-create-mini-bib)))
 
 ;;Helm-bibtex configuration options
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
