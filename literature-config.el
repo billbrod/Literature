@@ -11,7 +11,7 @@
 (eval-after-load 'markdown-mode
   '(progn
      (define-key markdown-mode-map (kbd "s-b") 'literature-create-mini-bib)))
-(eval-after-load 'tex-mode-mode
+(eval-after-load 'tex-mode
   '(progn
      (define-key TeX-mode-map (kbd "s-b") 'literature-create-mini-bib)))
 
