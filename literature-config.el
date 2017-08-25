@@ -13,7 +13,7 @@
      (define-key markdown-mode-map (kbd "s-b") 'literature-create-mini-bib)))
 (eval-after-load 'tex-mode
   '(progn
-     (define-key TeX-mode-map (kbd "s-b") 'literature-create-mini-bib)))
+     (define-key tex-mode-map (kbd "s-b") 'literature-create-mini-bib)))
 
 ;;Helm-bibtex configuration options
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
