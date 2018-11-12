@@ -48,6 +48,13 @@
   is), typing ~M-!~ and selecting ~literature-add-file~ will run it on
   the highlighted file (you can mark multiple files and then
   ~literature-add-file~ will be run on them one after the other).
+  
+  For now, there's an issue with ~bibtex-utils~, where the version
+  that exists on ~el-get~ starts with a bunch of uncommented text,
+  which can lead to a ~Symbol is void: A~ error. If this happens, find
+  the version of ~bibtex-utils.el~ that is being loaded, comment out
+  the text at the beginning (and the closing brackets at the end),
+  delete the compiled version (~bibtex-utils.elc~) and try again.
 
 * Android set-up
   
