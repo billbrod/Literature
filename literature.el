@@ -61,6 +61,13 @@ within your literature-paper-directory."
   :group 'literature
   )
 
+(defcustom literature-shell-and " && "
+  "How to join commands together in the shell. For fish shell,
+  you want to customise this to: \" ; and \" instead of the default."
+  :tag "Join shell commands"
+  :group 'literature
+  :type 'string)
+
 ;;; Functions:
 
 ;;;###autoload
@@ -481,20 +488,24 @@ rmflag is t) and push the change to origin master."
        ;; git changes happen in the right repo
        (concat "cd " (shell-quote-argument (file-name-directory (car files)))
 	       ;; We then remove or add all the files. mapconcat will
-	       ;; place ' && git rm/add ' between each entry of files,
+	       ;; place "'literature-shell-and  git rm/add " between each entry of files,
 	       ;; but to get it at the beginning I think I need to lead
 	       ;; with one.
 	       (if rmflag
-		   (concat " && git rm " (mapconcat 'shell-quote-argument files " && git rm "))
-		 (concat " && git add " (mapconcat 'shell-quote-argument files " && git add ")))
+		   (concat literature-shell-and "git rm "
+			   (mapconcat 'shell-quote-argument files
+				      (concat literature-shell-and "git rm ")))
+		 (concat literature-shell-and "git add "
+			 (mapconcat 'shell-quote-argument files
+				    (concat literature-shell-and "git add "))))
 	       ;; We now create the commit message in a similar way,
 	       ;; adding quotes so the spaces don't confuse git.
-	       " && git commit -m \""
+	       literature-shell-and "git commit -m \""
 	       (when rmflag
 		 "Removes ")
 	       (shell-quote-argument (mapconcat 'identity files ", "))
 	       ;; And finally push to origin master
-	       "\" && git push origin master"))))
+	       "\"" literature-shell-and "git push origin master"))))
   )
 
 ;;;###autoload
