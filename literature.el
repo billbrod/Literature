@@ -356,6 +356,8 @@ the file field is present)."
 	  (insert (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry)))
 	  (insert "\n\n** Keywords")
 	  (insert "\n\n\n** Notes")
+	  ;; initialize properties for org-noter
+	  (org-set-property "NOTER_PAGE" 1)
 	  (insert "\n\n\n** Annotations")
 	  (insert "\n\n\n** Links")
 	  ;; Only do this if we have a file
@@ -375,6 +377,7 @@ the file field is present)."
 	  (outline-up-heading 2)
 	  (org-set-property "ADDED" (format-time-string "[%Y-%m-%d]"))
 	  (org-set-property "BIBTEX-KEY" key)
+	  (org-set-property "NOTER_DOCUMENT" (concat (key ".pdf")))
 	  ;; the author field may contain extra newlines and
 	  ;; whitespace characters, so if we do, we remove them.
 	  (org-set-property "AUTHOR"
