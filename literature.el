@@ -358,6 +358,7 @@ the file field is present)."
 	  (insert "\n\n\n** Notes")
 	  ;; initialize properties for org-noter
 	  (org-set-property "NOTER_PAGE" 1)
+	  (end-of-buffer)
 	  (insert "\n\n\n** Annotations")
 	  (insert "\n\n\n** Links")
 	  ;; Only do this if we have a file
