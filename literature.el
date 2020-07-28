@@ -396,6 +396,10 @@ the file field is present)."
        (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
              (concat literature-paper-directory literature-master-bib))
        nil)
+      ;; kill the opened buffers
+      (kill-buffer (concat key ".org"))
+      (kill-buffer (concat key ".bib"))
+      (kill-buffer literature-master-bib)
       )
     )
   )
