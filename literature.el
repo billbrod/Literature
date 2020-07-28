@@ -32,10 +32,10 @@
 (defcustom literature-paper-directory
   nil
   "Parent directory for all your papers. This directory will
-  contain the master .bib and .org files, and each entry will
-  have a separate directory, containing the individual .bib and
-  .org files, as well as the pdf (if present) and any other
-  files. MUST end with a slash."
+  contain the master .bib file, and each entry will have a
+  separate directory, containing the individual .bib and .org
+  files, as well as the pdf (if present) and any other files.
+  MUST end with a slash."
   :type 'directory
   :group 'literature)
 
@@ -50,16 +50,6 @@ will be placed within your literature-paper-directory."
   :group 'literature
   )
 
-(defcustom literature-master-org
-  nil
-  "Name of your master notes file, which all of the individual
-.org files are combined in. This is probably the same as your
-org-ref-bibliography-notes. However, this should just be the
-name (eg, literature.org), not the full path; this will be placed
-within your literature-paper-directory."
-  :type 'file
-  :group 'literature
-  )
 
 (defcustom literature-shell-and " && "
   "How to join commands together in the shell. For fish shell,
@@ -130,10 +120,9 @@ your bibliography."
       ;; of the buffer, which aren't helpful.
       (let ((bib-contents (buffer-substring-no-properties (point-min) (point-max)))
 	    (key (literature-get-key-from-bibtex)))
-	;;and call the stuff to set it up. This will create the new
-	;;files, move over the pdf, add the entries to the master bib
-	;;and org files, and stage, commit, and push the new changes to
-	;;git.
+	;;and call the stuff to set it up. This will create the new files, move over
+	;;the pdf, add the entries to the master bib file, and stage, commit, and push
+	;;the new changes to git.
 	(literature-setup-files key bib-contents file)
 	(message (format "Key %s added, check to make sure it looks like you want" key))
 	)
@@ -391,24 +380,20 @@ the file field is present)."
     ;; If we have a file, move it in 
     (when filepath
       (rename-file filepath (concat entry-dir key "." (file-name-extension filepath))))
-    ;; We don't commit and push the change to the master org and bib
-    ;; files in the add-to-master functions because the git step is
-    ;; the step that takes the longest. We want to do all of them at
-    ;; once.
+    ;; We don't commit and push the change to the bib files in the add-to-master
+    ;; functions because the git step is the step that takes the longest. We
+    ;; want to do all of them at once.
     (literature-add-to-master-bib key)
-    (literature-add-to-master-org key)
     ;; the number of files we add to the git repo depends on whether
     ;; we have a file or not.
     (if filepath
 	(git-update-commit
 	 (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
 	       (concat entry-dir key "." (file-name-extension filepath))
-	       (concat literature-paper-directory literature-master-org)
 	       (concat literature-paper-directory literature-master-bib))
 	 nil)
       (git-update-commit
        (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
-	     (concat literature-paper-directory literature-master-org)
 	     (concat literature-paper-directory literature-master-bib))
        nil)
       )
@@ -442,38 +427,6 @@ the file field is present)."
       (bibtex-sort-buffer)
       )
     (set-file-modes master-bib-path #o444)
-    )
-  
-  )
-
-;;;###autoload
-(defun literature-add-to-master-org (key)
-  "This file adds the new notes entry (corresponding to KEY,
-  found at literature-paper-dir/key/key.org) to the master
-  notes file, specified by literature-master-org. It DOES
-  NOT double-check whether the entry already exists first, since
-  it's assumed that has been done before calling this."
-  (let ((master-org-path (concat literature-paper-directory literature-master-org)))
-    (set-file-modes master-org-path #o666)
-    (with-temp-file master-org-path
-      (insert-file-contents master-org-path)
-      ;; This ugly chaining is so we can use the regexp only on the
-      ;; contents of the org file we're adding without worrying
-      ;; about affecting the rest of the file. They get rid of any
-      ;; startup options in the small file as well as make the links
-      ;; work correctly.
-      (insert
-       (replace-regexp-in-string "#\\+STARTUP:.*" ""
-				 (replace-regexp-in-string "file:\\(.*\\)\\.\\(.*\\)" "file:\\1/\\1.\\2"
-							   (with-temp-buffer
-							     (insert-file-contents (concat literature-paper-directory key "/" key ".org"))
-							     (buffer-string))))
-       )
-      (insert "\n\n")
-      (goto-char (point-min))
-      (org-sort-entries nil ?r nil nil "BIBTEX-KEY")
-      )
-    (set-file-modes master-org-path #o444)
     )
   
   )
@@ -519,78 +472,68 @@ to your kill-emacs-hook), will update all of your files to keep
 them in sync. It goes through every key in your master-bib file and:
 
 1. if the corresponding entry isn't there, remove key from master
-   bib, master org
-2. if pdf exists and has been modified more recently than master org,
-   update annotations in individual org
-3. if org has been modified more recently than master org, copy
-   individual to master org
-4. if bib has been modified more recently than master bib, copy
+   bib
+
+2. if a pdf has been modified more recently than the
+   corresponding org, extract the annotations.
+
+3. if bib has been modified more recently than master bib, copy
    individual to master bib
 
-If your master bib / org files are out-of-date and you can't seem
-to fix them, use literature-force-renew.
+If your master bib file are out-of-date and you can't seem to fix
+them, use literature-force-renew.
 "
   (interactive)
   ;; We have to grab the time here instead of using
   ;; file-newer-than-file-p each time because we will overwrite master
-  ;; bib and master org as we go through this loop.
+  ;; bib as we go through this loop.
   (let* ((master-bib-path (concat literature-paper-directory literature-master-bib))
-	 (master-org-path (concat literature-paper-directory literature-master-org))
-	 (master-bib-time (nth 6 (file-attributes master-bib-path)))
-	 (master-org-time (nth 6 (file-attributes master-org-path)))
-	 ;; we're building up two lists of files to pass to the
-	 ;; git-update-commit function: one for those to add to the
-	 ;; repo (that have been changed) and one for those to remove
-	 ;; (that have been deleted).
-	 (added-files '())
-	 (removed-files '()))
+	       (master-bib-time (nth 6 (file-attributes master-bib-path)))
+         ;; we're building up two lists of files to pass to the
+         ;; git-update-commit function: one for those to add to the
+         ;; repo (that have been changed) and one for those to remove
+         ;; (that have been deleted).
+	       (added-files '())
+	       (removed-files '()))
     (with-temp-buffer
       (insert-file-contents master-bib-path)
       (goto-char (point-min))
       (bibtex-mode)
       (bibtex-set-dialect)
       (while (not (eobp))
-	(let* ((entry (bibtex-parse-entry t))
-	       (key (literature-get-key-from-bibtex))
-	       (entrydir (concat literature-paper-directory key)))
-	  (message key)
-	  ;; when the directory for a given key doesn't exists, we
-	  ;; remove it from the master org and bib files
-	  (unless (file-exists-p entrydir)
-	    (message (format "Key %s has been removed" key))
-	    (literature-remove-from-master-bib key)
-	    (literature-remove-from-master-org key)
-	    (cl-pushnew master-org-path added-files :test #'equal)
-	    (cl-pushnew master-bib-path added-files :test #'equal)
-	    (cl-pushnew (concat entrydir "/" key ".bib") removed-files :test #'equal)
-	    (cl-pushnew (concat entrydir "/" key ".org") removed-files :test #'equal)
-	    (cl-pushnew (concat entrydir "/" key ".pdf") removed-files :test #'equal))
-	  (when (and (file-exists-p (concat entrydir "/" key ".pdf"))
-		     (time-less-p master-org-time
-				  (nth 6 (file-attributes (concat entrydir "/" key ".pdf")))))
-	    (message (format "PDF %s updated, extracting annotations" key))
-	    (literature-add-annotations-to-notefile key)
-	    (cl-pushnew (concat entrydir "/" key ".org") added-files :test #'equal))
-	  (when (time-less-p master-org-time
-			     (nth 6 (file-attributes (concat entrydir "/" key ".org"))))
-	    (message (format "Org %s updated, copying to master org" key))
-	    (literature-remove-from-master-org key)
-	    (literature-add-to-master-org key)
-	    (cl-pushnew master-org-path added-files :test #'equal))
-	  (when (time-less-p master-bib-time
-			     (nth 6 (file-attributes (concat entrydir "/" key ".bib"))))
-	    (message (format "Bib %s updated, copying to master bib" key))
-	    (literature-remove-from-master-bib key)
-	    (literature-add-to-master-bib key)
-	    (cl-pushnew master-bib-path added-files :test #'equal))
-	  )
-	;; Similar to literature-add-bib, we use kill-entry and
-	;; beginning-of-entry to move through the bib flie (here we've
-	;; inserted its comments into a temp-buffer, so none of these
-	;; actual changes will be made.
-	(bibtex-kill-entry)
-	(bibtex-beginning-of-entry)
-	)
+	      (let* ((entry (bibtex-parse-entry t))
+	             (key (literature-get-key-from-bibtex))
+	             (entrydir (concat literature-paper-directory key)))
+	        (message key)
+          ;; when the directory for a given key doesn't exists, we
+          ;; remove it from the master bib files
+	        (unless (file-exists-p entrydir)
+	          (message (format "Key %s has been removed" key))
+	          (literature-remove-from-master-bib key)
+	          (cl-pushnew master-bib-path added-files :test #'equal)
+	          (cl-pushnew (concat entrydir "/" key ".bib") removed-files :test #'equal)
+	          (cl-pushnew (concat entrydir "/" key ".org") removed-files :test #'equal)
+	          (cl-pushnew (concat entrydir "/" key ".pdf") removed-files :test #'equal))
+	        (when (and (file-exists-p (concat entrydir "/" key ".pdf"))
+		                 (time-less-p (nth 6 (file-attributes (concat entrydir "/" key ".org")))
+				                          (nth 6 (file-attributes (concat entrydir "/" key ".pdf")))))
+	          (message (format "PDF %s updated, extracting annotations" key))
+	          (literature-add-annotations-to-notefile key)
+	          (cl-pushnew (concat entrydir "/" key ".org") added-files :test #'equal))
+	        (when (time-less-p master-bib-time
+			                       (nth 6 (file-attributes (concat entrydir "/" key ".bib"))))
+	          (message (format "Bib %s updated, copying to master bib" key))
+	          (literature-remove-from-master-bib key)
+	          (literature-add-to-master-bib key)
+	          (cl-pushnew master-bib-path added-files :test #'equal))
+	        )
+        ;; Similar to literature-add-bib, we use kill-entry and
+        ;; beginning-of-entry to move through the bib flie (here we've
+        ;; inserted its comments into a temp-buffer, so none of these
+        ;; actual changes will be made.
+	      (bibtex-kill-entry)
+	      (bibtex-beginning-of-entry)
+	      )
       (git-update-commit added-files nil)
       (git-update-commit removed-files t)
       )
@@ -657,74 +600,36 @@ master bib file"
   )
 
 ;;;###autoload
-(defun literature-remove-from-master-org (key)
-  "This finds and removes the entry corresponding to key from the
-master org file."
-  (let ((master-org-path (concat literature-paper-directory literature-master-org)))
-    (set-file-modes master-org-path #o666)
-    (with-temp-file master-org-path
-      (insert-file-contents master-org-path)
-      (if (re-search-forward (format ":BIBTEX-KEY:\\s-*%s" key) nil t)
-	  (progn
-	    (org-previous-visible-heading 1)
-	    (org-cut-subtree)
-	    )
-	(message (format "Key %s not found in master org, so not removed" key))))
-    (set-file-modes master-org-path #o444)
-    ))
-
-
-;;;###autoload
 (defun literature-force-renew ()
-  "This function deletes your current master org and master bib
-files and recreates them. For master org, it looks for every file
-that matches literature-paper-directory/*/*.org and for master
-bib, it looks for every file that matches
-literature-paper-directory/*/*.bib. It copies all of the matching
-files into their respective matching file (replacing their links
-as necessary). Afterwards, they're sorted, and master org and master
+  "This function deletes your current master bib files and
+recreates them. For master bib, it looks for every file that
+matches literature-paper-directory/*/*.bib. It copies all of the
+matching files into their respective matching file (replacing
+their links as necessary). Afterwards, they're sorted, and master
 bib are staged and committed."
   (interactive)
-  (let ((master-org-path (concat literature-paper-directory literature-master-org))
-	(master-bib-path (concat literature-paper-directory literature-master-bib)))
-    (set-file-modes master-org-path #o666)
-    (set-file-modes master-bib-path #o666)    
+  (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
+    (set-file-modes master-bib-path #o666)
     (with-temp-file master-bib-path
       (cl-loop for bibfile in (f-glob "*/*.bib" literature-paper-directory) do
-	       ;; This ugly chaining is so we can use the regexp only on the
-	       ;; contents of the bib file we're adding without worrying
-	       ;; about affecting the rest of the file. They make the links
-	       ;; work correctly.
-	       (insert
-		(replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
-					  (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
-								    (with-temp-buffer
-								      (insert-file-contents bibfile)
-								      (buffer-string))))
-		)
-	       (insert "\n")
-	       )
+               ;; This ugly chaining is so we can use the regexp only on the
+               ;; contents of the bib file we're adding without worrying
+               ;; about affecting the rest of the file. They make the links
+               ;; work correctly.
+               (insert
+                (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
+                                          (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
+                                                                    (with-temp-buffer
+                                                                      (insert-file-contents bibfile)
+                                                                      (buffer-string))))
+                )
+               (insert "\n")
+               )
       (goto-char (point-min))
       (bibtex-sort-buffer)
       )
-    (with-temp-file master-org-path
-      (insert "#+STARTUP: showeverything\n")
-      (cl-loop for orgfile in (f-glob "*/*.org" literature-paper-directory) do
-	       (insert
-		(replace-regexp-in-string "#\\+STARTUP:.*" ""
-					  (replace-regexp-in-string "file:\\(.*\\)\\.\\(.*\\)" "file:\\1/\\1.\\2"
-								    (with-temp-buffer
-								      (insert-file-contents orgfile)
-								      (buffer-string))))
-		)
-	       (insert "\n\n")
-	       )
-      (goto-char (point-min))
-      (org-sort-entries nil ?r nil nil "BIBTEX-KEY")
-      )
     (set-file-modes master-bib-path #o444)
-    (set-file-modes master-org-path #o444)
-    (git-update-commit (list master-org-path master-bib-path) nil)
+    (git-update-commit (list master-bib-path) nil)
     )
   )
 

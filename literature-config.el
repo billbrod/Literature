@@ -4,7 +4,8 @@
 (require 'literature)
 
 (global-set-key (kbd "s-u") 'literature-update)
-(add-hook 'kill-emacs-hook 'literature-update)
+;; (add-hook 'kill-emacs-hook 'literature-update)
+;; (remove-hook 'kill-emacs-hook 'literature-update)
 
 (global-set-key (kbd "s-a") 'literature-add-file)
 
@@ -41,12 +42,10 @@
 ;;; with your helmb-bitex and org-ref options.
 (setq literature-paper-directory "/home/billbrod/Org-Docs/Papers/")
 (setq literature-master-bib "literature.bib")
-(setq literature-master-org "literature.org")
 
 (setq reftex-default-bibliography '("~/Org-Docs/Papers/literature.bib"))
 ;; see org-ref for use of these variables
-(setq org-ref-bibliography-notes "~/Org-Docs/Papers/literature.org"
-      org-ref-default-bibliography '("~/Org-Docs/Papers/literature.bib")
+(setq org-ref-default-bibliography '("~/Org-Docs/Papers/literature.bib")
       org-ref-pdf-directory "~/Org-Docs/Papers/")
 
 ;; make sure you have dash, helm, helm-bibtex, ebib, s, f, hydra and key-chord
@@ -65,3 +64,5 @@
 
 (setf (alist-get 'markdown-mode bibtex-completion-format-citation-functions) 'bibtex-completion-format-citation-cite)
 (setq bibtex-completion-cite-prompt-for-optional-arguments nil)
+
+(setq bibtex-dialect 'BibTeX)
