@@ -67,12 +67,12 @@ we attempt to automatically get the bibtex by extracting the doi)
 and .bib files. Any other file type will cause an exception"
   (interactive)
   (let ((file buffer-file-name))
-   (cond ((equalp (file-name-extension file) "pdf")
-	  (literature-add-pdf file))
-	 ((equalp (file-name-extension file) "bib")
-	  (literature-add-bib file))
-	 (t (display-warning :warning "Only files with a pdf or bib extension are accepted"))
-	 ))
+    (cond ((equalp (file-name-extension file) "pdf")
+           (literature-add-pdf file))
+          ((equalp (file-name-extension file) "bib")
+           (literature-add-bib file))
+          (t (display-warning :warning "Only files with a pdf or bib extension are accepted"))
+          ))
   )
 
 ;;;###autoload
@@ -101,17 +101,17 @@ your bibliography."
       ;; different ones are possible) and raises a more descriptive
       ;; error message.
       (condition-case nil
-	  (doi-insert-bibtex doi)
-	('error
-	 (error (format "Unable to download .bib for file %s, doi %s. download .bib yourself" file doi))))
+          (doi-insert-bibtex doi)
+        ('error
+         (error (format "Unable to download .bib for file %s, doi %s. download .bib yourself" file doi))))
       (beginning-of-buffer)
       ;; We next try to format (using org-ref-clean-bibtex-entry) the
       ;; downloaded bibtex entry. If we can't, we throw an error.
       (literature-try-to-format-bib file)
       ;; if the key is already in our bibliography, we throw an error
       (let ((key (literature-get-key-from-bibtex)))
-	(literature-check-key key file)
-	)
+        (literature-check-key key file)
+        )
       ;; or if the doi is already in the bibliography
       (literature-check-doi doi file)
       ;; and now we set up the directory, passing it the pdf file path
@@ -119,13 +119,13 @@ your bibliography."
       ;; buffer-substring-no-properties so we don't grab the properties
       ;; of the buffer, which aren't helpful.
       (let ((bib-contents (buffer-substring-no-properties (point-min) (point-max)))
-	    (key (literature-get-key-from-bibtex)))
-	;;and call the stuff to set it up. This will create the new files, move over
-	;;the pdf, add the entries to the master bib file, and stage, commit, and push
-	;;the new changes to git.
-	(literature-setup-files key bib-contents file)
-	(message (format "Key %s added, check to make sure it looks like you want" key))
-	)
+            (key (literature-get-key-from-bibtex)))
+        ;;and call the stuff to set it up. This will create the new files, move over
+        ;;the pdf, add the entries to the master bib file, and stage, commit, and push
+        ;;the new changes to git.
+        (literature-setup-files key bib-contents file)
+        (message (format "Key %s added, check to make sure it looks like you want" key))
+        )
       )
     ))
 
@@ -139,7 +139,7 @@ throwname must be given and this will print a message instead,
 then throw to the named catch."
   (when (cdr (org-ref-get-bibtex-key-and-file key))
     (if file
-	(error (format "Key %s (for pdf %s) already in your bibliography" key file))
+        (error (format "Key %s (for pdf %s) already in your bibliography" key file))
       (message (format "Key %s already in your bibliography, skipping" key))
       (throw throwname nil))
     )
@@ -155,17 +155,17 @@ given, then an error will be raised (as used in
 literature-add-pdf), else throwname must be given and this will
 print a message instead, then throw to the named catch."
   (cl-loop for bibfile in org-ref-bibliography-files do
-	   (with-current-buffer
-	       (find-file-noselect bibfile)
-	     (goto-char (point-min))
-	     (when (search-forward doi nil t)
-	       (if file
-		   (error (format "DOI %s (for pdf %s) already in your bibliography" doi file))
-		 (message (format "DOI %s already in your bibliography" doi))
-		 (throw throwname nil)
-		 )
-	       ))
-	   )
+           (with-current-buffer
+               (find-file-noselect bibfile)
+             (goto-char (point-min))
+             (when (search-forward doi nil t)
+               (if file
+                   (error (format "DOI %s (for pdf %s) already in your bibliography" doi file))
+                 (message (format "DOI %s already in your bibliography" doi))
+                 (throw throwname nil)
+                 )
+               ))
+           )
   )
 
 ;;;###autoload
@@ -181,12 +181,12 @@ throw to the named catch."
       (org-ref-clean-bibtex-entry)
     ('error
      (if file
-	 (error (format "Unable to properly format bibtex entry for file %s, download .bib yourself" file))
+         (error (format "Unable to properly format bibtex entry for file %s, download .bib yourself" file))
        (progn
-	 (message (format "Unable to properly format entry for %s, skipping"
-			  (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry))))
-	 (throw throwname nil)
-	 ))
+         (message (format "Unable to properly format entry for %s, skipping"
+                          (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry))))
+         (throw throwname nil)
+         ))
      )
     )
   )
@@ -217,26 +217,26 @@ want the doi that shows up the most instead of each that shows up.
 "
   (with-temp-buffer
     (insert (shell-command-to-string (format "%s %s -"
-					     pdftotext-executable
-					     (shell-quote-argument (dnd-unescape-uri pdf)))))
+                                             pdftotext-executable
+                                             (shell-quote-argument (dnd-unescape-uri pdf)))))
     (goto-char (point-min))
     (let ((matches '()))
       (while (re-search-forward org-ref-pdf-doi-regex nil t)
-	;; I don't know how to avoid a trailing . on some dois with the
-	;; expression above, so if it is there, I chomp it off here.
-	(let ((doi (match-string 1)))
-	  (when (s-ends-with? "." doi)
-	    (setq doi (substring doi 0 (- (length doi) 1))))
-	  (push doi matches)))
+        ;; I don't know how to avoid a trailing . on some dois with the
+        ;; expression above, so if it is there, I chomp it off here.
+        (let ((doi (match-string 1)))
+          (when (s-ends-with? "." doi)
+            (setq doi (substring doi 0 (- (length doi) 1))))
+          (push doi matches)))
       ;; this bit is based on code from
       ;; http://stackoverflow.com/questions/6050033/elegant-way-to-count-items
       (let (result)
-	(dolist (elt matches result)
-	  (let ((sofar (assoc elt result)))
-	    (if sofar
-		(setcdr sofar (1+ (cdr sofar)))
-	      (push (cons elt 1) result))))
-	(car (car (sort result (lambda (a b) (> (cdr a) (cdr b))))))))))
+        (dolist (elt matches result)
+          (let ((sofar (assoc elt result)))
+            (if sofar
+                (setcdr sofar (1+ (cdr sofar)))
+              (push (cons elt 1) result))))
+        (car (car (sort result (lambda (a b) (> (cdr a) (cdr b))))))))))
 
 ;;;###autoload
 (defun literature-add-bib (file)
@@ -258,51 +258,51 @@ the file field is present)."
       ;; steps for a bibtex entry in one of three conditions: if
       ;; org-ref-clean-bibtex-entry returns an error; if 
       (catch 'format-problem-or-already-in-bib
-	(let ((entry (bibtex-parse-entry t)))
-	  (literature-try-to-format-bib nil entry 'format-problem-or-already-in-bib)
-	  (let ((key (literature-get-key-from-bibtex))
-		(filepath (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "file" entry)))
-		(doi (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "doi" entry))))
-	    ;; Check if the key is already in your bibliography and
-	    ;; throw if so.
-	    (literature-check-key key nil 'format-problem-or-already-in-bib)
-	    ;; And if the doi is already in the bibliography
-	    (literature-check-doi key nil 'format-problem-or-already-in-bib)
-	    ;; this let* statement is copied from bibtex-kill-entry,
-	    ;; since I similarly want to grab the beginning and end of
-	    ;; the entry.
-	    (let* ((case-fold-search t)
-		   (beg (bibtex-beginning-of-entry))
-		   (end (progn (bibtex-end-of-entry)
-			       (if (re-search-forward
-				    bibtex-any-entry-maybe-empty-head nil 'move)
-				   (goto-char (match-beginning 0)))
-			       (point))))
-	      ;; in the process of getting end, we move to the
-	      ;; beginning of the next entry. This interferes with how
-	      ;; we move through the file, so we make sure to head
-	      ;; back to the previous entry before doing anything
-	      ;; else.
-	      (org-ref-bibtex-previous-entry)
-	      ;; if there's no file field, reftex-get-bib-field will
-	      ;; return an empty string, not nil, so this is required.
-	      (if (string= "" filepath)
-		  (progn
-		    (literature-setup-files key (buffer-substring-no-properties beg end))
-		    (message (format "Key %s added WITHOUT file, make sure it looks like you want" key))
-		    )
-		(literature-setup-files key (buffer-substring-no-properties beg end) filepath)
-		(message (format "Key %s added with file, make sure it looks like you want" key))
-		))
-	    )
-	  ))
+        (let ((entry (bibtex-parse-entry t)))
+          (literature-try-to-format-bib nil entry 'format-problem-or-already-in-bib)
+          (let ((key (literature-get-key-from-bibtex))
+                (filepath (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "file" entry)))
+                (doi (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "doi" entry))))
+            ;; Check if the key is already in your bibliography and
+            ;; throw if so.
+            (literature-check-key key nil 'format-problem-or-already-in-bib)
+            ;; And if the doi is already in the bibliography
+            (literature-check-doi key nil 'format-problem-or-already-in-bib)
+            ;; this let* statement is copied from bibtex-kill-entry,
+            ;; since I similarly want to grab the beginning and end of
+            ;; the entry.
+            (let* ((case-fold-search t)
+                   (beg (bibtex-beginning-of-entry))
+                   (end (progn (bibtex-end-of-entry)
+                               (if (re-search-forward
+                                    bibtex-any-entry-maybe-empty-head nil 'move)
+                                   (goto-char (match-beginning 0)))
+                               (point))))
+              ;; in the process of getting end, we move to the
+              ;; beginning of the next entry. This interferes with how
+              ;; we move through the file, so we make sure to head
+              ;; back to the previous entry before doing anything
+              ;; else.
+              (org-ref-bibtex-previous-entry)
+              ;; if there's no file field, reftex-get-bib-field will
+              ;; return an empty string, not nil, so this is required.
+              (if (string= "" filepath)
+                  (progn
+                    (literature-setup-files key (buffer-substring-no-properties beg end))
+                    (message (format "Key %s added WITHOUT file, make sure it looks like you want" key))
+                    )
+                (literature-setup-files key (buffer-substring-no-properties beg end) filepath)
+                (message (format "Key %s added with file, make sure it looks like you want" key))
+                ))
+            )
+          ))
       ;; If there's an actual error in the bib entry (and it's not
       ;; just formatted in a way org-ref doesn't like), this will
       ;; throw an error, so we catch it and make it clear what went
       ;; wrong.
       (condition-case nil
-	  (bibtex-kill-entry)
-	('error (error "Your bib file is formatted incorrectly, I can't move through it!")))
+          (bibtex-kill-entry)
+        ('error (error "Your bib file is formatted incorrectly, I can't move through it!")))
       (bibtex-beginning-of-entry)
       )
     )
@@ -320,7 +320,7 @@ the file field is present)."
   (let ((entry-dir (concat literature-paper-directory key "/")))
     (make-directory entry-dir)
     (with-current-buffer
-	(find-file-noselect (concat entry-dir key ".bib"))
+        (find-file-noselect (concat entry-dir key ".bib"))
       (insert bib-contents)
       (bibtex-mode)
       (bibtex-beginning-of-entry)
@@ -329,53 +329,53 @@ the file field is present)."
       (bibtex-set-field "notefile" (concat key ".org"))
       ;; Add the file field if we have a file
       (when filepath
-	(if (string= "pdf" (file-name-extension filepath))
-	    (bibtex-set-field "file" (concat ":" key ".pdf:PDF"))
-	  (bibtex-set-field "file" (concat ":" key "." (file-name-extension filepath) ":"))
-	  ))
+        (if (string= "pdf" (file-name-extension filepath))
+            (bibtex-set-field "file" (concat ":" key ".pdf:PDF"))
+          (bibtex-set-field "file" (concat ":" key "." (file-name-extension filepath) ":"))
+          ))
       (bibtex-beginning-of-entry)
       (save-buffer)
       ;; Create the note file
       (let ((entry (bibtex-parse-entry t)))
-	(with-current-buffer
-	    (find-file-noselect (concat entry-dir key ".org"))
-	  (org-mode)
-	  (insert "#+STARTUP: showall\n")
-	  (org-insert-todo-heading t)
-	  (insert (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry)))
-	  (insert "\n\n** Keywords")
-	  (insert "\n\n\n** Notes")
-	  ;; initialize properties for org-noter
-	  (org-set-property "NOTER_PAGE" "1")
-	  (end-of-buffer)
-	  (insert "\n\n\n** Annotations")
-	  (insert "\n\n\n** Links")
-	  ;; Only do this if we have a file
-	  (when filepath
-	    (newline)
-	    (indent-relative)
-	    (if (string= "pdf" (file-name-extension filepath))
-		(insert (concat "PDF: [[file:" key ".pdf]]"))
-	      (insert (concat "File: [[file:" key "." (file-name-extension filepath) "]]"))
-	      )
-	    )
-	  (cl-loop for elt in '(("Bibtex" . "bib") ("Notes" . "org")) do
-		   (newline)
-		   (indent-relative)
-		   (insert (concat (car elt) ": [[file:" key "." (cdr elt) "]]"))
-		   )
-	  (outline-up-heading 2)
-	  (org-set-property "ADDED" (format-time-string "[%Y-%m-%d]"))
-	  (org-set-property "BIBTEX-KEY" key)
-	  (org-set-property "NOTER_DOCUMENT" (concat key ".pdf"))
-	  ;; the author field may contain extra newlines and
-	  ;; whitespace characters, so if we do, we remove them.
-	  (org-set-property "AUTHOR"
-			    (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "author" entry)))
-	  (org-set-property "YEAR" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "year" entry)))
- 	  (org-set-property "PUBLICATION" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "journal" entry)))
-	  (save-buffer)
-	  ))
+        (with-current-buffer
+            (find-file-noselect (concat entry-dir key ".org"))
+          (org-mode)
+          (insert "#+STARTUP: showall\n")
+          (org-insert-todo-heading t)
+          (insert (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry)))
+          (insert "\n\n** Keywords")
+          (insert "\n\n\n** Notes")
+          ;; initialize properties for org-noter
+          (org-set-property "NOTER_PAGE" "1")
+          (end-of-buffer)
+          (insert "\n\n\n** Annotations")
+          (insert "\n\n\n** Links")
+          ;; Only do this if we have a file
+          (when filepath
+            (newline)
+            (indent-relative)
+            (if (string= "pdf" (file-name-extension filepath))
+                (insert (concat "PDF: [[file:" key ".pdf]]"))
+              (insert (concat "File: [[file:" key "." (file-name-extension filepath) "]]"))
+              )
+            )
+          (cl-loop for elt in '(("Bibtex" . "bib") ("Notes" . "org")) do
+                   (newline)
+                   (indent-relative)
+                   (insert (concat (car elt) ": [[file:" key "." (cdr elt) "]]"))
+                   )
+          (outline-up-heading 2)
+          (org-set-property "ADDED" (format-time-string "[%Y-%m-%d]"))
+          (org-set-property "BIBTEX-KEY" key)
+          (org-set-property "NOTER_DOCUMENT" (concat key ".pdf"))
+          ;; the author field may contain extra newlines and
+          ;; whitespace characters, so if we do, we remove them.
+          (org-set-property "AUTHOR"
+                            (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "author" entry)))
+          (org-set-property "YEAR" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "year" entry)))
+          (org-set-property "PUBLICATION" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "journal" entry)))
+          (save-buffer)
+          ))
       )
     ;; If we have a file, move it in 
     (when filepath
@@ -387,14 +387,14 @@ the file field is present)."
     ;; the number of files we add to the git repo depends on whether
     ;; we have a file or not.
     (if filepath
-	(git-update-commit
-	 (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
-	       (concat entry-dir key "." (file-name-extension filepath))
-	       (concat literature-paper-directory literature-master-bib))
-	 nil)
+        (git-update-commit
+         (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
+               (concat entry-dir key "." (file-name-extension filepath))
+               (concat literature-paper-directory literature-master-bib))
+         nil)
       (git-update-commit
        (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
-	     (concat literature-paper-directory literature-master-bib))
+             (concat literature-paper-directory literature-master-bib))
        nil)
       )
     )
@@ -417,10 +417,10 @@ the file field is present)."
       ;; work correctly.
       (insert
        (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
-				 (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
-							   (with-temp-buffer
-							     (insert-file-contents (concat literature-paper-directory key "/" key ".bib"))
-							     (buffer-string))))
+                                 (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
+                                                           (with-temp-buffer
+                                                             (insert-file-contents (concat literature-paper-directory key "/" key ".bib"))
+                                                             (buffer-string))))
        )
       (insert "\n")
       (goto-char (point-min))
@@ -444,25 +444,25 @@ rmflag is t) and push the change to origin master."
        ;; We first must cd to the directory containing this file so our
        ;; git changes happen in the right repo
        (concat "cd " (shell-quote-argument (file-name-directory (car files)))
-	       ;; We then remove or add all the files. mapconcat will
-	       ;; place "'literature-shell-and  git rm/add " between each entry of files,
-	       ;; but to get it at the beginning I think I need to lead
-	       ;; with one.
-	       (if rmflag
-		   (concat literature-shell-and "git rm "
-			   (mapconcat 'shell-quote-argument files
-				      (concat literature-shell-and "git rm ")))
-		 (concat literature-shell-and "git add "
-			 (mapconcat 'shell-quote-argument files
-				    (concat literature-shell-and "git add "))))
-	       ;; We now create the commit message in a similar way,
-	       ;; adding quotes so the spaces don't confuse git.
-	       literature-shell-and "git commit -m \""
-	       (when rmflag
-		 "Removes ")
-	       (shell-quote-argument (mapconcat 'identity files ", "))
-	       ;; And finally push to origin master
-	       "\"" literature-shell-and "git push origin master"))))
+               ;; We then remove or add all the files. mapconcat will
+               ;; place "'literature-shell-and  git rm/add " between each entry of files,
+               ;; but to get it at the beginning I think I need to lead
+               ;; with one.
+               (if rmflag
+                   (concat literature-shell-and "git rm "
+                           (mapconcat 'shell-quote-argument files
+                                      (concat literature-shell-and "git rm ")))
+                 (concat literature-shell-and "git add "
+                         (mapconcat 'shell-quote-argument files
+                                    (concat literature-shell-and "git add "))))
+               ;; We now create the commit message in a similar way,
+               ;; adding quotes so the spaces don't confuse git.
+               literature-shell-and "git commit -m \""
+               (when rmflag
+                 "Removes ")
+               (shell-quote-argument (mapconcat 'identity files ", "))
+               ;; And finally push to origin master
+               "\"" literature-shell-and "git push origin master"))))
   )
 
 ;;;###autoload
@@ -488,52 +488,52 @@ them, use literature-force-renew.
   ;; file-newer-than-file-p each time because we will overwrite master
   ;; bib as we go through this loop.
   (let* ((master-bib-path (concat literature-paper-directory literature-master-bib))
-	       (master-bib-time (nth 6 (file-attributes master-bib-path)))
+         (master-bib-time (nth 6 (file-attributes master-bib-path)))
          ;; we're building up two lists of files to pass to the
          ;; git-update-commit function: one for those to add to the
          ;; repo (that have been changed) and one for those to remove
          ;; (that have been deleted).
-	       (added-files '())
-	       (removed-files '()))
+         (added-files '())
+         (removed-files '()))
     (with-temp-buffer
       (insert-file-contents master-bib-path)
       (goto-char (point-min))
       (bibtex-mode)
       (bibtex-set-dialect)
       (while (not (eobp))
-	      (let* ((entry (bibtex-parse-entry t))
-	             (key (literature-get-key-from-bibtex))
-	             (entrydir (concat literature-paper-directory key)))
-	        (message key)
+        (let* ((entry (bibtex-parse-entry t))
+               (key (literature-get-key-from-bibtex))
+               (entrydir (concat literature-paper-directory key)))
+          (message key)
           ;; when the directory for a given key doesn't exists, we
           ;; remove it from the master bib files
-	        (unless (file-exists-p entrydir)
-	          (message (format "Key %s has been removed" key))
-	          (literature-remove-from-master-bib key)
-	          (cl-pushnew master-bib-path added-files :test #'equal)
-	          (cl-pushnew (concat entrydir "/" key ".bib") removed-files :test #'equal)
-	          (cl-pushnew (concat entrydir "/" key ".org") removed-files :test #'equal)
-	          (cl-pushnew (concat entrydir "/" key ".pdf") removed-files :test #'equal))
-	        (when (and (file-exists-p (concat entrydir "/" key ".pdf"))
-		                 (time-less-p (nth 6 (file-attributes (concat entrydir "/" key ".org")))
-				                          (nth 6 (file-attributes (concat entrydir "/" key ".pdf")))))
-	          (message (format "PDF %s updated, extracting annotations" key))
-	          (literature-add-annotations-to-notefile key)
-	          (cl-pushnew (concat entrydir "/" key ".org") added-files :test #'equal))
-	        (when (time-less-p master-bib-time
-			                       (nth 6 (file-attributes (concat entrydir "/" key ".bib"))))
-	          (message (format "Bib %s updated, copying to master bib" key))
-	          (literature-remove-from-master-bib key)
-	          (literature-add-to-master-bib key)
-	          (cl-pushnew master-bib-path added-files :test #'equal))
-	        )
+          (unless (file-exists-p entrydir)
+            (message (format "Key %s has been removed" key))
+            (literature-remove-from-master-bib key)
+            (cl-pushnew master-bib-path added-files :test #'equal)
+            (cl-pushnew (concat entrydir "/" key ".bib") removed-files :test #'equal)
+            (cl-pushnew (concat entrydir "/" key ".org") removed-files :test #'equal)
+            (cl-pushnew (concat entrydir "/" key ".pdf") removed-files :test #'equal))
+          (when (and (file-exists-p (concat entrydir "/" key ".pdf"))
+                     (time-less-p (nth 6 (file-attributes (concat entrydir "/" key ".org")))
+                                  (nth 6 (file-attributes (concat entrydir "/" key ".pdf")))))
+            (message (format "PDF %s updated, extracting annotations" key))
+            (literature-add-annotations-to-notefile key)
+            (cl-pushnew (concat entrydir "/" key ".org") added-files :test #'equal))
+          (when (time-less-p master-bib-time
+                             (nth 6 (file-attributes (concat entrydir "/" key ".bib"))))
+            (message (format "Bib %s updated, copying to master bib" key))
+            (literature-remove-from-master-bib key)
+            (literature-add-to-master-bib key)
+            (cl-pushnew master-bib-path added-files :test #'equal))
+          )
         ;; Similar to literature-add-bib, we use kill-entry and
         ;; beginning-of-entry to move through the bib flie (here we've
         ;; inserted its comments into a temp-buffer, so none of these
         ;; actual changes will be made.
-	      (bibtex-kill-entry)
-	      (bibtex-beginning-of-entry)
-	      )
+        (bibtex-kill-entry)
+        (bibtex-beginning-of-entry)
+        )
       (git-update-commit added-files nil)
       (git-update-commit removed-files t)
       )
@@ -547,9 +547,9 @@ them, use literature-force-renew.
   add them to those for .org file associated with this key. Any
   already existing annotations will be deleted"
   (let* ((entrydir (concat literature-paper-directory key))
-	 (notefile (concat entrydir "/" key ".org"))
-	 (pdffile (concat entrydir "/" key ".pdf"))
-	 (annotations (literature-get-annotations pdffile)))
+         (notefile (concat entrydir "/" key ".org"))
+         (pdffile (concat entrydir "/" key ".pdf"))
+         (annotations (literature-get-annotations pdffile)))
     (with-temp-file notefile
       (org-mode)
       (insert-file-contents notefile)
@@ -558,10 +558,10 @@ them, use literature-force-renew.
       (org-cut-subtree)
       (insert "** Annotations\n\n")
       (cl-loop for elt in annotations do
-	       (insert (concat "\"" (cdr (assoc 'contents elt)) "\""))
-	       (insert (concat " (page " (number-to-string (cdr (assoc 'page elt))) ")") )
-	       (insert "\n\n")
-	       )
+               (insert (concat "\"" (cdr (assoc 'contents elt)) "\""))
+               (insert (concat " (page " (number-to-string (cdr (assoc 'page elt))) ")") )
+               (insert "\n\n")
+               )
       (indent-region (point-min) (point-max))
       ;; We don't want to call fill on the links section, so we do it
       ;; on everything up until then. I think this will not work on
@@ -578,9 +578,9 @@ them, use literature-force-renew.
 each entry has two elements, the first is the page and the second
 is the content of the annotation. "
   (cl-loop for elt in (pdf-info-getannots nil pdf)
-	   if (equal (cdr (assoc 'type elt)) 'text)
-	   collect (list (assoc 'page elt) (assoc 'contents elt))
-	   )
+           if (equal (cdr (assoc 'type elt)) 'text)
+           collect (list (assoc 'page elt) (assoc 'contents elt))
+           )
   )
 
 ;;;###autoload
@@ -592,9 +592,9 @@ master bib file"
     (with-temp-file master-bib-path
       (insert-file-contents master-bib-path)
       (if (bibtex-search-entry key)
-	  (bibtex-kill-entry)
-	(message (format "Key %s removed from master bib" key))
-	(message (format "Key %s not found in master bib, so not removed" key))))
+          (bibtex-kill-entry)
+        (message (format "Key %s removed from master bib" key))
+        (message (format "Key %s not found in master bib, so not removed" key))))
     (set-file-modes master-bib-path #o444)
     )
   )
@@ -652,10 +652,10 @@ bib are staged and committed."
    was causing the issue."
   (let test-list (f-glob "~/Org-Docs/Papers/*/*.bib")
        (while test-list
-	 (setq bibtex-completion-bibliography (car test-list))
-	 (print (car test-list))
-	 (print (bibtex-completion-candidates))
-	 (setq test-list (cdr test-list)))))
+         (setq bibtex-completion-bibliography (car test-list))
+         (print (car test-list))
+         (print (bibtex-completion-candidates))
+         (setq test-list (cdr test-list)))))
 
 
 ;;;###autoload
@@ -669,12 +669,12 @@ bib are staged and committed."
   (with-temp-file "./bibliography/biblio-offline.bib"
     (let (keys)
       (cl-loop for check-file in (append (f-glob "./*md") (f-glob "./*tex")) do
-	       (when-let (matches (mapcar (lambda (x) (elt x 1)) (s-match-strings-all "\cite{\\(.*?\n*?\\)}" (with-temp-buffer
-													       (insert-file-contents check-file)
-													       (replace-string "\n" " ")
-													       (buffer-string)))))
-			 (push (mapcar (lambda (x) (split-string x ", ")) matches) keys))
-	       )
+               (when-let (matches (mapcar (lambda (x) (elt x 1)) (s-match-strings-all "\cite{\\(.*?\n*?\\)}" (with-temp-buffer
+                                                                                                          (insert-file-contents check-file)
+                                                                                                          (replace-string "\n" " ")
+                                                                                                          (buffer-string)))))
+                 (push (mapcar (lambda (x) (split-string x ", ")) matches) keys))
+               )
       (bibtex-completion-insert-bibtex (delete-dups (eshell-flatten-list keys))))))
 
 
@@ -692,9 +692,9 @@ bib are staged and committed."
    with org-ref-cite-candidates"
   (let ((pdf-file (car (bibtex-completion-find-pdf key))))
     (if pdf-file
-	pdf-file
+        pdf-file
       "not found")
-       )
+    )
   )
 
 (setq org-ref-get-pdf-filename-function 'my/find-one-pdf)
@@ -707,50 +707,50 @@ bib are staged and committed."
      "Open the notes associated with the selected entries (at KEY/KEY.org) using `find-file'."
      (dolist (key keys)
        (if (and bibtex-completion-notes-path
-		(f-directory? bibtex-completion-notes-path))
+                (f-directory? bibtex-completion-notes-path))
                                         ; One notes file per publication:
-	   (let* ((path (f-join bibtex-completion-notes-path
-				(s-concat key "/" key bibtex-completion-notes-extension))))
-	     (find-file path)
-	     (unless (f-exists? path)
-	       (insert (s-format bibtex-completion-notes-template-multiple-files
-				 'bibtex-completion-apa-get-value
-				 (bibtex-completion-get-entry key)))))
+           (let* ((path (f-join bibtex-completion-notes-path
+                                (s-concat key "/" key bibtex-completion-notes-extension))))
+             (find-file path)
+             (unless (f-exists? path)
+               (insert (s-format bibtex-completion-notes-template-multiple-files
+                                 'bibtex-completion-apa-get-value
+                                 (bibtex-completion-get-entry key)))))
                                         ; One file for all notes:
-	 (unless (and buffer-file-name
-		      (f-same? bibtex-completion-notes-path buffer-file-name))
-	   (find-file-other-window bibtex-completion-notes-path))
-	 (widen)
-	 (show-all)
-	 (goto-char (point-min))
-	 (if (re-search-forward (format bibtex-completion-notes-key-pattern key) nil t)
+         (unless (and buffer-file-name
+                      (f-same? bibtex-completion-notes-path buffer-file-name))
+           (find-file-other-window bibtex-completion-notes-path))
+         (widen)
+         (show-all)
+         (goto-char (point-min))
+         (if (re-search-forward (format bibtex-completion-notes-key-pattern key) nil t)
                                         ; Existing entry found:
-	     (when (eq major-mode 'org-mode)
-	       (org-narrow-to-subtree)
-	       (re-search-backward "^\*+ " nil t)
-	       (org-cycle-hide-drawers nil)
-	       (bibtex-completion-notes-mode 1))
+             (when (eq major-mode 'org-mode)
+               (org-narrow-to-subtree)
+               (re-search-backward "^\*+ " nil t)
+               (org-cycle-hide-drawers nil)
+               (bibtex-completion-notes-mode 1))
                                         ; Create a new entry:
-	   (let ((entry (bibtex-completion-get-entry key)))
-	     (goto-char (point-max))
-	     (insert (s-format bibtex-completion-notes-template-one-file
-			       'bibtex-completion-apa-get-value
-			       entry)))
-	   (when (eq major-mode 'org-mode)
-	     (org-narrow-to-subtree)
-	     (re-search-backward "^\*+ " nil t)
-	     (org-cycle-hide-drawers nil)
-	     (goto-char (point-max))
-	     (bibtex-completion-notes-mode 1)))))))
+           (let ((entry (bibtex-completion-get-entry key)))
+             (goto-char (point-max))
+             (insert (s-format bibtex-completion-notes-template-one-file
+                               'bibtex-completion-apa-get-value
+                               entry)))
+           (when (eq major-mode 'org-mode)
+             (org-narrow-to-subtree)
+             (re-search-backward "^\*+ " nil t)
+             (org-cycle-hide-drawers nil)
+             (goto-char (point-max))
+             (bibtex-completion-notes-mode 1)))))))
 
 
 ;;Custom function to open the individual notes file
 (add-to-list 'org-ref-helm-user-candidates
-	     '("Open individual notes file" .
-	       (lambda ()
-		 (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
-		   (bibtex-completion-edit-notes
-		    (list (car (org-ref-get-bibtex-key-and-file))))))))
+             '("Open individual notes file" .
+               (lambda ()
+                 (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
+                   (bibtex-completion-edit-notes
+                    (list (car (org-ref-get-bibtex-key-and-file))))))))
 
 (provide 'literature)
 
