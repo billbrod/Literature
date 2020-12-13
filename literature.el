@@ -234,27 +234,12 @@ Based on org-ref-extract-doi-from-pdf, the only change is that I
 want the doi that shows up the most instead of each that shows up.
 "
   (with-temp-buffer
-    (insert (shell-command-to-string (format "%s %s -"
-                                             pdftotext-executable
-                                             (shell-quote-argument (dnd-unescape-uri pdf)))))
-    (goto-char (point-min))
-    (let ((matches '()))
-      (while (re-search-forward org-ref-pdf-doi-regex nil t)
-        ;; I don't know how to avoid a trailing . on some dois with the
-        ;; expression above, so if it is there, I chomp it off here.
-        (let ((doi (match-string 1)))
-          (when (s-ends-with? "." doi)
-            (setq doi (substring doi 0 (- (length doi) 1))))
-          (push doi matches)))
-      ;; this bit is based on code from
-      ;; http://stackoverflow.com/questions/6050033/elegant-way-to-count-items
-      (let (result)
-        (dolist (elt matches result)
-          (let ((sofar (assoc elt result)))
-            (if sofar
-                (setcdr sofar (1+ (cdr sofar)))
-              (push (cons elt 1) result))))
-        (car (car (sort result (lambda (a b) (> (cdr a) (cdr b))))))))))
+    (let ((matches (org-ref-extract-doi-from-pdf pdf)))
+      (if (> (length matches) 1)
+          nil
+        (car matches))
+      )
+    ))
 
 ;;;###autoload
 (defun literature-add-bib (file)
