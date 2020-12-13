@@ -29,7 +29,7 @@
 
 
 ;;; Variables:
-(defcustom literature-paper-directory
+(defcustom literature-paper-superdirectory
   nil
   "Parent directory for all your papers. This directory will
   contain the master .bib file, and each entry will have a
@@ -39,13 +39,31 @@
   :type 'directory
   :group 'literature)
 
+(defcustom literature-paper-directory-name "papers/"
+  "Name of the sub-directory that contains files for the actual
+  papers (pdfs ,etc). MUST end with a slash."
+  :type 'string
+  :group 'literature)
+
+(defcustom literature-notes-directory-name "notes/"
+  "Name of the sub-directory that contains individual notes
+  files. MUST end with a slash."
+  :type 'string
+  :group 'literature)
+
+(defcustom literature-bibtex-directory-name "bibs/"
+  "Name of the sub-directory that contains individual bibtex
+  entries. MUST end with a slash."
+  :type 'string
+  :group 'literature)
+
 (defcustom literature-master-bib
   nil
   "Name of your master bibliography file, which all of the
 individual .bib files are combined in. This is probably the same
 file as your org-ref-default-bibliography. However, this should
 just be the name (eg, literature.bib), not the full path; this
-will be placed within your literature-paper-directory."
+will be placed within your literature-paper-superdirectory."
   :type 'file
   :group 'literature
   )
@@ -313,95 +331,85 @@ the file field is present)."
   "Given the key, contents of the bib file, and the associated
   file (if present), this function creates the directory for
   this entry (directory's name will be key and it will be
-  contained within literature-paper-directory), save a new .bib
+  contained within literature-paper-superdirectory), save a new .bib
   file there containing bib-contents, move the file if
   present, and create the .org notes file. We also update the
   file and notefile fields of the .bib"
-  (let ((entry-dir (concat literature-paper-directory key "/")))
-    (make-directory entry-dir)
-    (with-current-buffer
-        (find-file-noselect (concat entry-dir key ".bib"))
-      (insert bib-contents)
-      (bibtex-mode)
-      (bibtex-beginning-of-entry)
-      ;; Set the notefile and (if necessary) file fields to the
-      ;; appropriate values.
-      (bibtex-set-field "notefile" (concat key ".org"))
-      ;; Add the file field if we have a file
-      (when filepath
-        (if (string= "pdf" (file-name-extension filepath))
-            (bibtex-set-field "file" (concat ":" key ".pdf:PDF"))
-          (bibtex-set-field "file" (concat ":" key "." (file-name-extension filepath) ":"))
-          ))
-      (bibtex-beginning-of-entry)
-      (save-buffer)
-      ;; Create the note file
-      (let ((entry (bibtex-parse-entry t)))
-        (with-current-buffer
-            (find-file-noselect (concat entry-dir key ".org"))
-          (org-mode)
-          (insert "#+STARTUP: showall\n")
-          (org-insert-todo-heading t)
-          (insert (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry)))
-          (insert "\n\n** Keywords")
-          (insert "\n\n\n** Notes")
-          ;; initialize properties for org-noter
-          (org-set-property "NOTER_PAGE" "1")
-          (end-of-buffer)
-          (insert "\n\n\n** Annotations")
-          (insert "\n\n\n** Links")
-          ;; Only do this if we have a file
-          (when filepath
-            (newline)
-            (indent-relative)
-            (if (string= "pdf" (file-name-extension filepath))
-                (insert (concat "PDF: [[file:" key ".pdf]]"))
-              (insert (concat "File: [[file:" key "." (file-name-extension filepath) "]]"))
-              )
-            )
-          (cl-loop for elt in '(("Bibtex" . "bib") ("Notes" . "org")) do
-                   (newline)
-                   (indent-relative)
-                   (insert (concat (car elt) ": [[file:" key "." (cdr elt) "]]"))
-                   )
-          (outline-up-heading 2)
-          (org-set-property "ADDED" (format-time-string "[%Y-%m-%d]"))
-          (org-set-property "BIBTEX-KEY" key)
-          (org-set-property "NOTER_DOCUMENT" (concat key ".pdf"))
-          ;; the author field may contain extra newlines and
-          ;; whitespace characters, so if we do, we remove them.
-          (org-set-property "AUTHOR"
-                            (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "author" entry)))
-          (org-set-property "YEAR" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "year" entry)))
-          (org-set-property "PUBLICATION" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "journal" entry)))
-          (save-buffer)
-          ))
-      )
-    ;; If we have a file, move it in 
+  (with-current-buffer
+      (find-file-noselect (concat literature-paper-superdirectory literature-bibtex-directory-name key ".bib"))
+    (insert bib-contents)
+    (bibtex-mode)
+    (bibtex-beginning-of-entry)
+    ;; Set the notefile and (if necessary) file fields to the
+    ;; appropriate values.
+    (bibtex-set-field "notefile" (concat "../notes/" key ".org"))
+    ;; Add the file field if we have a file
     (when filepath
-      (rename-file filepath (concat entry-dir key "." (file-name-extension filepath))))
-    ;; We don't commit and push the change to the bib files in the add-to-master
-    ;; functions because the git step is the step that takes the longest. We
-    ;; want to do all of them at once.
-    (literature-add-to-master-bib key)
-    ;; the number of files we add to the git repo depends on whether
-    ;; we have a file or not.
-    (if filepath
-        (git-update-commit
-         (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
-               (concat entry-dir key "." (file-name-extension filepath))
-               (concat literature-paper-directory literature-master-bib))
-         nil)
-      (git-update-commit
-       (list (concat entry-dir key ".bib") (concat entry-dir key ".org")
-             (concat literature-paper-directory literature-master-bib))
-       nil)
-      ;; kill the opened buffers
-      (kill-buffer (concat key ".org"))
-      (kill-buffer (concat key ".bib"))
-      (kill-buffer literature-master-bib)
-      )
+      (if (string= "pdf" (file-name-extension filepath))
+          (bibtex-set-field "file" (concat ":../papers/" key ".pdf:PDF"))
+        (bibtex-set-field "file" (concat ":../papers/" key "." (file-name-extension filepath) ":"))
+        ))
+    (bibtex-beginning-of-entry)
+    (save-buffer)
+    ;; Create the note file
+    (let ((entry (bibtex-parse-entry t)))
+      (with-current-buffer
+          (find-file-noselect (concat literature-paper-superdirectory literature-notes-directory-name key ".org"))
+        (org-mode)
+        (insert "#+STARTUP: showall\n")
+        (org-insert-todo-heading t)
+        (insert (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry)))
+        (insert "\n\n** Keywords")
+        (insert "\n\n\n** Notes")
+        ;; initialize properties for org-noter
+        (org-set-property "NOTER_PAGE" "1")
+        (end-of-buffer)
+        (insert "\n\n\n** Annotations")
+        (insert "\n\n\n** Links")
+        ;; Only do this if we have a file
+        (when filepath
+          (newline)
+          (indent-relative)
+          (if (string= "pdf" (file-name-extension filepath))
+              (insert (concat "PDF: [[file:../papers/" key ".pdf]]"))
+            (insert (concat "File: [[file:../papers/" key "." (file-name-extension filepath) "]]"))
+            )
+          )
+        (cl-loop for elt in '(("Bibtex" "../bibs" "bib") ("Notes" "." "org")) do
+                 (newline)
+                 (indent-relative)
+                 (insert (concat (pop elt) ": [[file:" (pop elt) "/" key "." (pop elt) "]]"))
+                 )
+        (outline-up-heading 2)
+        (org-set-property "ADDED" (format-time-string "[%Y-%m-%d]"))
+        (org-set-property "BIBTEX-KEY" key)
+        (org-set-property "NOTER_DOCUMENT" (concat "../papers/" key ".pdf"))
+        ;; the author field may contain extra newlines and
+        ;; whitespace characters, so if we do, we remove them.
+        (org-set-property "AUTHOR"
+                          (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "author" entry)))
+        (org-set-property "YEAR" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "year" entry)))
+        (org-set-property "PUBLICATION" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "journal" entry)))
+        (save-buffer)
+        ))
     )
+  ;; If we have a file, move it in
+  (when filepath
+    (rename-file filepath (concat literature-paper-superdirectory literature-paper-directory-name key "." (file-name-extension filepath))))
+  ;; We don't commit and push the change to the bib files in the add-to-master
+  ;; functions because the git step is the step that takes the longest. We
+  ;; want to do all of them at once.
+  (literature-add-to-master-bib key)
+  ;; add files to git repo
+  (git-update-commit
+   (list (concat literature-paper-superdirectory literature-bibtex-directory-name key ".bib")
+         (concat literature-paper-superdirectory literature-notes-directory-name key ".org")
+         (concat literature-paper-superdirectory literature-master-bib))
+   nil)
+  (kill-buffer (concat key ".org"))
+  (kill-buffer (concat key ".bib"))
+  (kill-buffer literature-master-bib)
+
   )
 
 ;;;###autoload
@@ -411,7 +419,7 @@ the file field is present)."
   bibliography file, specified by literature-master-bib. It DOES
   NOT double-check whether the key already exists first, since
   it's assumed that has been done before calling this."
-  (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
+  (let ((master-bib-path (concat literature-paper-superdirectory literature-master-bib)))
     (set-file-modes master-bib-path #o666)
     (with-temp-file master-bib-path
       (insert-file-contents master-bib-path)
@@ -420,10 +428,10 @@ the file field is present)."
       ;; about affecting the rest of the file. They make the links
       ;; work correctly.
       (insert
-       (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
-                                 (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
+       (replace-regexp-in-string (concat "notefile\\(\\s-*\\)=\\(\\s-*\\){../" literature-notes-directory-name "\\(.*\\)\\.\\(.*\\)") (concat "notefile\\1=\\2{" literature-notes-directory-name "\\3.\\4")
+                                 (replace-regexp-in-string (concat "file\\(\\s-*\\)=\\(\\s-*\\){:../" literature-paper-directory-name "\\(.*\\)\\.\\(.*\\)") (concat "file\1=\\2{:" literature-paper-directory-name "\\3/\\3.\\4")
                                                            (with-temp-buffer
-                                                             (insert-file-contents (concat literature-paper-directory key "/" key ".bib"))
+                                                             (insert-file-contents (concat literature-paper-superdirectory literature-bibtex-directory-name key ".bib"))
                                                              (buffer-string))))
        )
       (insert "\n")
@@ -491,7 +499,7 @@ them, use literature-force-renew.
   ;; We have to grab the time here instead of using
   ;; file-newer-than-file-p each time because we will overwrite master
   ;; bib as we go through this loop.
-  (let* ((master-bib-path (concat literature-paper-directory literature-master-bib))
+  (let* ((master-bib-path (concat literature-paper-superdirectory literature-master-bib))
          (master-bib-time (nth 6 (file-attributes master-bib-path)))
          ;; we're building up two lists of files to pass to the
          ;; git-update-commit function: one for those to add to the
@@ -506,26 +514,25 @@ them, use literature-force-renew.
       (bibtex-set-dialect)
       (while (not (eobp))
         (let* ((entry (bibtex-parse-entry t))
-               (key (literature-get-key-from-bibtex))
-               (entrydir (concat literature-paper-directory key)))
+               (key (literature-get-key-from-bibtex)))
           (message key)
           ;; when the directory for a given key doesn't exists, we
           ;; remove it from the master bib files
-          (unless (file-exists-p entrydir)
+          (unless (file-exists-p (concat literature-paper-superdirectory literature-notes-directory-name key ".org"))
             (message (format "Key %s has been removed" key))
             (literature-remove-from-master-bib key)
             (cl-pushnew master-bib-path added-files :test #'equal)
-            (cl-pushnew (concat entrydir "/" key ".bib") removed-files :test #'equal)
-            (cl-pushnew (concat entrydir "/" key ".org") removed-files :test #'equal)
-            (cl-pushnew (concat entrydir "/" key ".pdf") removed-files :test #'equal))
-          (when (and (file-exists-p (concat entrydir "/" key ".pdf"))
-                     (time-less-p (nth 6 (file-attributes (concat entrydir "/" key ".org")))
-                                  (nth 6 (file-attributes (concat entrydir "/" key ".pdf")))))
+            (cl-pushnew (concat literature-paper-superdirectory literature-bibtex-directory-name key ".bib") removed-files :test #'equal)
+            (cl-pushnew (concat literature-paper-superdirectory literature-notes-directory-name key ".org") removed-files :test #'equal)
+            (cl-pushnew (concat literature-paper-superdirectory literature-paper-directory-name key ".pdf") removed-files :test #'equal))
+          (when (and (file-exists-p (concat literature-paper-superdirectory literature-paper-directory-name key ".pdf"))
+                     (time-less-p (nth 6 (file-attributes (concat literature-paper-superdirectory literature-notes-directory-name key ".org")))
+                                  (nth 6 (file-attributes (concat literature-paper-superdirectory literature-paper-directory-name key ".pdf")))))
             (message (format "PDF %s updated, extracting annotations" key))
             (literature-add-annotations-to-notefile key)
-            (cl-pushnew (concat entrydir "/" key ".org") added-files :test #'equal))
+            (cl-pushnew (concat literature-paper-superdirectory literature-notes-directory-name key ".org") added-files :test #'equal))
           (when (time-less-p master-bib-time
-                             (nth 6 (file-attributes (concat entrydir "/" key ".bib"))))
+                             (nth 6 (file-attributes (concat literature-paper-superdirectory literature-bibtex-directory-name key ".bib"))))
             (message (format "Bib %s updated, copying to master bib" key))
             (literature-remove-from-master-bib key)
             (literature-add-to-master-bib key)
@@ -550,9 +557,8 @@ them, use literature-force-renew.
   "Take the annotations from the pdf associated with this key and
   add them to those for .org file associated with this key. Any
   already existing annotations will be deleted"
-  (let* ((entrydir (concat literature-paper-directory key))
-         (notefile (concat entrydir "/" key ".org"))
-         (pdffile (concat entrydir "/" key ".pdf"))
+  (let* ((notefile (concat literature-paper-superdirectory literature-notes-directory-name key ".org"))
+         (pdffile (concat literature-paper-superdirectory literature-paper-directory-name key ".pdf"))
          (annotations (literature-get-annotations pdffile)))
     (with-temp-file notefile
       (org-mode)
@@ -591,7 +597,7 @@ is the content of the annotation. "
 (defun literature-remove-from-master-bib (key)
   "This finds and removes the entry corresponding to key from the
 master bib file"
-  (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
+  (let ((master-bib-path (concat literature-paper-superdirectory literature-master-bib)))
     (set-file-modes master-bib-path #o666)
     (with-temp-file master-bib-path
       (insert-file-contents master-bib-path)
@@ -607,22 +613,22 @@ master bib file"
 (defun literature-force-renew ()
   "This function deletes your current master bib files and
 recreates them. For master bib, it looks for every file that
-matches literature-paper-directory/*/*.bib. It copies all of the
+matches literature-paper-superdirectory/*/*.bib. It copies all of the
 matching files into their respective matching file (replacing
 their links as necessary). Afterwards, they're sorted, and master
 bib are staged and committed."
   (interactive)
-  (let ((master-bib-path (concat literature-paper-directory literature-master-bib)))
+  (let ((master-bib-path (concat literature-paper-superdirectory literature-master-bib)))
     (set-file-modes master-bib-path #o666)
     (with-temp-file master-bib-path
-      (cl-loop for bibfile in (f-glob "*/*.bib" literature-paper-directory) do
+      (cl-loop for bibfile in (f-glob (concat literature-bibtex-directory-name "*.bib") literature-paper-superdirectory) do
                ;; This ugly chaining is so we can use the regexp only on the
                ;; contents of the bib file we're adding without worrying
                ;; about affecting the rest of the file. They make the links
                ;; work correctly.
                (insert
-                (replace-regexp-in-string "notefile =\\(\\s-*\\){\\(.*\\)\\.\\(.*\\)" "notefile =\\1{\\2/\\2.\\3"
-                                          (replace-regexp-in-string "file =\\(\\s-*\\){:\\(.*\\)\\.\\(.*\\)" "file =\\1{:\\2/\\2.\\3"
+                (replace-regexp-in-string (concat "notefile\\(\\s-*\\)=\\(\\s-*\\){../" literature-notes-directory-name "\\(.*\\)\\.\\(.*\\)") (concat "notefile\\1=\\2{" literature-notes-directory-name "\\3.\\4")
+                                          (replace-regexp-in-string (concat "file\\(\\s-*\\)=\\(\\s-*\\){:../" literature-paper-directory-name "\\(.*\\)\\.\\(.*\\)") (concat "file\\1=\\2{:" literature-paper-directory-name "\\3/\\3.\\4")
                                                                     (with-temp-buffer
                                                                       (insert-file-contents bibfile)
                                                                       (buffer-string))))
@@ -654,12 +660,13 @@ bib are staged and committed."
    a problem, so you can go and look at it specifically. For me,
    it was a non-standard parentheses (appeared too large) which
    was causing the issue."
-  (let test-list (f-glob "~/Org-Docs/Papers/*/*.bib")
-       (while test-list
-         (setq bibtex-completion-bibliography (car test-list))
-         (print (car test-list))
-         (print (bibtex-completion-candidates))
-         (setq test-list (cdr test-list)))))
+  (let (test-list (f-glob "~/Org-Docs/Papers/bibs/*.bib"))
+    (while test-list
+      (setq bibtex-completion-bibliography (car test-list))
+      (print (car test-list))
+      (print (bibtex-completion-candidates))
+      (setq test-list (cdr test-list)))
+    ))
 
 
 ;;;###autoload
@@ -668,7 +675,7 @@ bib are staged and committed."
   tex files for \cite{KEY} and creates a new file,
   bibliography/biblio-offline.bib (overwriting if already there),
   containing the keys found (copied over from your
-  literature-master-bib).  This is to use with authorea."
+  literature-master-bib).  This is to use with authorea/overleaf."
   (interactive)
   (with-temp-file "./bibliography/biblio-offline.bib"
     (let (keys)
@@ -703,58 +710,6 @@ bib are staged and committed."
 
 (setq org-ref-get-pdf-filename-function 'my/find-one-pdf)
 
-;; Over-write the bibtex-completion-edit-notes function, because we
-;; format the entries as KEY/KEY.org in bibtex-completion-notes-path,
-;; which there's currently no support for.
-(eval-after-load 'helm-bibtex		
-  '(defun bibtex-completion-edit-notes (keys)
-     "Open the notes associated with the selected entries (at KEY/KEY.org) using `find-file'."
-     (dolist (key keys)
-       (if (and bibtex-completion-notes-path
-                (f-directory? bibtex-completion-notes-path))
-                                        ; One notes file per publication:
-           (let* ((path (f-join bibtex-completion-notes-path
-                                (s-concat key "/" key bibtex-completion-notes-extension))))
-             (find-file path)
-             (unless (f-exists? path)
-               (insert (s-format bibtex-completion-notes-template-multiple-files
-                                 'bibtex-completion-apa-get-value
-                                 (bibtex-completion-get-entry key)))))
-                                        ; One file for all notes:
-         (unless (and buffer-file-name
-                      (f-same? bibtex-completion-notes-path buffer-file-name))
-           (find-file-other-window bibtex-completion-notes-path))
-         (widen)
-         (show-all)
-         (goto-char (point-min))
-         (if (re-search-forward (format bibtex-completion-notes-key-pattern key) nil t)
-                                        ; Existing entry found:
-             (when (eq major-mode 'org-mode)
-               (org-narrow-to-subtree)
-               (re-search-backward "^\*+ " nil t)
-               (org-cycle-hide-drawers nil)
-               (bibtex-completion-notes-mode 1))
-                                        ; Create a new entry:
-           (let ((entry (bibtex-completion-get-entry key)))
-             (goto-char (point-max))
-             (insert (s-format bibtex-completion-notes-template-one-file
-                               'bibtex-completion-apa-get-value
-                               entry)))
-           (when (eq major-mode 'org-mode)
-             (org-narrow-to-subtree)
-             (re-search-backward "^\*+ " nil t)
-             (org-cycle-hide-drawers nil)
-             (goto-char (point-max))
-             (bibtex-completion-notes-mode 1)))))))
-
-
-;;Custom function to open the individual notes file
-(add-to-list 'org-ref-helm-user-candidates
-             '("Open individual notes file" .
-               (lambda ()
-                 (let ((bibtex-completion-bibliography (org-ref-find-bibliography)))
-                   (bibtex-completion-edit-notes
-                    (list (car (org-ref-get-bibtex-key-and-file))))))))
 
 (provide 'literature)
 

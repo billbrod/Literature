@@ -20,9 +20,9 @@
 ;;Location of your master bib file (paper_dir from lit_add.py + literature.bib)
 (setq bibtex-completion-bibliography "~/Org-Docs/Papers/literature.bib")
 ;;Should be the same as paper_dir from lit_add.py
-(setq bibtex-completion-library-path "~/Org-Docs/Papers/")
+(setq bibtex-completion-library-path "~/Org-Docs/Papers/papers/")
 ;;Should be the same as paper_dir from lit_add.py
-(setq bibtex-completion-notes-path "~/Org-Docs/Papers/")
+(setq bibtex-completion-notes-path "~/Org-Docs/Papers/notes/")
 (setq bibtex-completion-notes-extension ".org")
 (setq bibtex-completion-additional-search-fields '(journal))
 
@@ -40,13 +40,17 @@
 
 ;;; Literature configuration options. These should probably coordinate
 ;;; with your helmb-bitex and org-ref options.
-(setq literature-paper-directory "/home/billbrod/Org-Docs/Papers/")
+(setq literature-paper-superdirectory "/home/billbrod/Org-Docs/Papers/")
 (setq literature-master-bib "literature.bib")
 
 (setq reftex-default-bibliography '("~/Org-Docs/Papers/literature.bib"))
 ;; see org-ref for use of these variables
 (setq org-ref-default-bibliography '("~/Org-Docs/Papers/literature.bib")
-      org-ref-pdf-directory "~/Org-Docs/Papers/")
+      org-ref-pdf-directory "~/Org-Docs/Papers/papers/")
+(setq org-ref-completion-library 'org-ref-ivy-cite)
+(setq org-ref-notes-function 'org-ref-notes-function-many-files)
+(setq org-ref-notes-directory "~/Org-Docs/Papers/notes/")
+
 
 ;; make sure you have dash, helm, helm-bibtex, ebib, s, f, hydra and key-chord
 ;; in your load-path
@@ -58,9 +62,10 @@
 ;; system default (eg, evince or okular), uncomment this line.
 ;; (setq bibtex-completion-pdf-open-function 'helm-open-file-with-default-tool)
 
-;; This tell bibtex-completion to look at the File field of the bibtex
-;; entry to figure out which pdf to open
-(setq bibtex-completion-pdf-field "File")
+;; This tell bibtex-completion to look at the file field of the bibtex
+
+(setq bibtex-completion-pdf-field "file")
+;; (setq bibtex-completion-pdf-field nil)
 
 (setf (alist-get 'markdown-mode bibtex-completion-format-citation-functions) 'bibtex-completion-format-citation-cite)
 (setq bibtex-completion-cite-prompt-for-optional-arguments nil)
