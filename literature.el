@@ -85,67 +85,11 @@ we attempt to automatically get the bibtex by extracting the doi)
 and .bib files. Any other file type will cause an exception"
   (interactive)
   (let ((file buffer-file-name))
-    (cond ((equalp (file-name-extension file) "pdf")
-           (literature-add-pdf file))
-          ((equalp (file-name-extension file) "bib")
+    (cond ((equalp (file-name-extension file) "bib")
            (literature-add-bib file))
-          (t (display-warning :warning "Only files with a pdf or bib extension are accepted"))
+          (t (display-warning :warning "Only files with a bib extension are accepted"))
           ))
   )
-
-;;;###autoload
-(defun literature-add-pdf (file)
-  "Add a pdf file to your bibliography. For this to work, the pdf
-file needs to contain a doi that can be reliably extracted (if
-there are multiple dois found in the document, we use the one
-that shows up the most) and the doi needs to be usable for
-grabbing a bibtex entry. In case either of these are false, this
-function will throw an error and you'll need to download the .bib
-yourself; you should then call literature-add-bib to add it to
-your bibliography."
-  ;; to get the moving around within the bibtex buffer working,
-  ;; biblio-synchronous needs to be true
-  (let ((doi (literature-extract-doi-from-pdf file)) (biblio-synchronous t))
-    (when (not doi)
-      (error (format "Unable to retrieve doi from %s, download .bib yourself" file)))
-    (with-temp-buffer
-      (bibtex-mode)
-      ;; there are two places where this could fail. The first is in
-      ;; grabbing the bib for the doi (less likely) and the second is
-      ;; in running org-ref-clean-bibtex-entry on the resulting
-      ;; entry. An error there may be the result of a problem in the
-      ;; first case, but it might not show up until then. These
-      ;; condition-cases catches any error that comes out (several
-      ;; different ones are possible) and raises a more descriptive
-      ;; error message.
-      (condition-case nil
-          (doi-insert-bibtex doi)
-        ('error
-         (error (format "Unable to download .bib for file %s, doi %s. download .bib yourself" file doi))))
-      (beginning-of-buffer)
-      ;; We next try to format (using org-ref-clean-bibtex-entry) the
-      ;; downloaded bibtex entry. If we can't, we throw an error.
-      (literature-try-to-format-bib file)
-      ;; if the key is already in our bibliography, we throw an error
-      (let ((key (literature-get-key-from-bibtex)))
-        (literature-check-key key file)
-        )
-      ;; or if the doi is already in the bibliography
-      (literature-check-doi doi file)
-      ;; and now we set up the directory, passing it the pdf file path
-      ;; and the contents of the bib file. Need to use
-      ;; buffer-substring-no-properties so we don't grab the properties
-      ;; of the buffer, which aren't helpful.
-      (let ((bib-contents (buffer-substring-no-properties (point-min) (point-max)))
-            (key (literature-get-key-from-bibtex)))
-        ;;and call the stuff to set it up. This will create the new files, move over
-        ;;the pdf, add the entries to the master bib file, and stage, commit, and push
-        ;;the new changes to git.
-        (literature-setup-files key bib-contents file)
-        (message (format "Key %s added, check to make sure it looks like you want" key))
-        )
-      )
-    ))
 
 ;;;###autoload
 (defun literature-check-key (key &optional file throwname)
@@ -219,27 +163,6 @@ throw to the named catch."
   (when (re-search-forward "@[A-Za-z]+{\\(.*\\),")
     (match-string 1))
   )
-
-;;;###autoload
-(defun literature-extract-doi-from-pdf (pdf)
-  "Try to extract a doi from a PDF file.
-There may be more than one doi in the file. If so, we return the
-one that shows up the most. Thus, if there's a tie, we return all
-the ones that tie.
-
-If there is a trailing . we chomp it off. Returns a list of doi
-strings, or nil.
-
-Based on org-ref-extract-doi-from-pdf, the only change is that I
-want the doi that shows up the most instead of each that shows up.
-"
-  (with-temp-buffer
-    (let ((matches (org-ref-extract-doi-from-pdf pdf)))
-      (if (> (length matches) 1)
-          nil
-        (car matches))
-      )
-    ))
 
 ;;;###autoload
 (defun literature-add-bib (file)
