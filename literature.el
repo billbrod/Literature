@@ -576,6 +576,11 @@ bib are staged and committed."
       (setq test-list (cdr test-list)))
     ))
 
+(defun trim-string (string)
+  "Remove white spaces in beginning and ending of STRING.
+White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
+  (replace-regexp-in-string "\\`[ \t\n]*" "" (replace-regexp-in-string "[ \t\n]*\\'" "" string))
+  )
 
 ;;;###autoload
 (defun literature-create-mini-bib ()
@@ -588,13 +593,18 @@ bib are staged and committed."
   (with-temp-file "./bibliography/biblio-offline.bib"
     (let (keys)
       (cl-loop for check-file in (append (f-glob "./*md") (f-glob "./*tex")) do
-               (when-let (matches (mapcar (lambda (x) (elt x 1)) (s-match-strings-all "\cite{\\(.*?\n*?\\)}" (with-temp-buffer
-                                                                                                          (insert-file-contents check-file)
-                                                                                                          (replace-string "\n" " ")
-                                                                                                          (buffer-string)))))
-                 (push (mapcar (lambda (x) (split-string x ", ")) matches) keys))
-               )
-      (bibtex-completion-insert-bibtex (delete-dups (eshell-flatten-list keys))))))
+               (when-let (matches (mapcar (lambda (x) (elt x 1)) (s-match-strings-all "\cite{\\(.*?\n*?\\)}"
+                                                                                 (with-temp-buffer
+                                                                                   (insert-file-contents check-file)
+                                                                                   (replace-string "\n" " ")
+                                                                                   (buffer-string)))))
+                 ;; need to strip any trailing spaces in order to properly find bibtex key
+                 (push (mapcar (lambda (x) (mapcar 'trim-string (split-string x ","))) matches) keys)))
+      (bibtex-completion-insert-bibtex (delete-dups (eshell-flatten-list keys))))
+    (bibtex-sort-buffer)
+    (beginning-of-buffer)
+    ;; remove any file or notefile lines
+    (flush-lines "^ *\\(note\\)?file")))
 
 
 ;;; CUSTOMIZATION OF EXISTING PACKAGES
