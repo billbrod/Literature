@@ -593,7 +593,7 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
   (with-temp-file "./bibliography/biblio-offline.bib"
     (let (keys)
       (cl-loop for check-file in (append (f-glob "./*md") (f-glob "./*tex")) do
-               (when-let (matches (mapcar (lambda (x) (elt x 1)) (s-match-strings-all "\cite{\\(.*?\n*?\\)}"
+               (when-let (matches (mapcar (lambda (x) (elt x 1)) (s-match-strings-all "\[a-z]*citep?{\\(.*?\n*?\\)}"
                                                                                  (with-temp-buffer
                                                                                    (insert-file-contents check-file)
                                                                                    (replace-string "\n" " ")
