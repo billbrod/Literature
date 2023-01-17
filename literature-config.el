@@ -51,6 +51,9 @@
 (setq org-ref-notes-function 'org-ref-notes-function-many-files)
 (setq org-ref-notes-directory "~/Org-Docs/Papers/notes/")
 
+;; remove the download pdf function from hook, because it's unnecessary and
+;; messes our functions
+(setq org-ref-clean-bibtex-entry-hook (delete 'orcb-download-pdf org-ref-clean-bibtex-entry-hook))
 
 ;; make sure you have dash, helm, helm-bibtex, ebib, s, f, hydra and key-chord
 ;; in your load-path
