@@ -65,8 +65,8 @@ file as your org-ref-default-bibliography. However, this should
 just be the name (eg, literature.bib), not the full path; this
 will be placed within your literature-paper-superdirectory."
   :type 'file
-  :group 'literature
-  )
+  :group 'literature)
+  
 
 
 (defcustom literature-shell-and " && "
@@ -87,9 +87,9 @@ and .bib files. Any other file type will cause an exception"
   (let ((file buffer-file-name))
     (cond ((equalp (file-name-extension file) "bib")
            (literature-add-bib file))
-          (t (display-warning :warning "Only files with a bib extension are accepted"))
-          ))
-  )
+          (t (display-warning :warning "Only files with a bib extension are accepted")))))
+          
+  
 
 ;;;###autoload
 (defun literature-check-key (key &optional file throwname)
@@ -99,13 +99,12 @@ of the two optional args is required: if file is given, then an
 error will be raised (as used in literature-add-pdf), else
 throwname must be given and this will print a message instead,
 then throw to the named catch."
-  (when (cdr (org-ref-get-bibtex-key-and-file key))
-    (if file
-        (error (format "Key %s (for pdf %s) already in your bibliography" key file))
-      (message (format "Key %s already in your bibliography, skipping" key))
-      (throw throwname nil))
-    )
-  )
+  (save-window-excursion
+    (when (bibtex-completion-show-entry (list key))
+      (if file
+          (error (format "Key %s (for pdf %s) already in your bibliography" key file))
+        (message (format "Key %s already in your bibliography, skipping" key))
+        (throw throwname nil)))))
 
 ;;;###autoload
 (defun literature-check-doi (doi &optional file throwname)
@@ -116,19 +115,15 @@ throw). One of the two optional args is required: if file is
 given, then an error will be raised (as used in
 literature-add-pdf), else throwname must be given and this will
 print a message instead, then throw to the named catch."
-  (cl-loop for bibfile in org-ref-bibliography-files do
-           (with-current-buffer
-               (find-file-noselect bibfile)
-             (goto-char (point-min))
-             (when (search-forward doi nil t)
-               (if file
-                   (error (format "DOI %s (for pdf %s) already in your bibliography" doi file))
-                 (message (format "DOI %s already in your bibliography" doi))
-                 (throw throwname nil)
-                 )
-               ))
-           )
-  )
+  (let ((master-bib-path (concat literature-paper-superdirectory literature-master-bib)))
+   (with-current-buffer
+       (find-file-noselect master-bib-path)
+     (goto-char (point-min))
+     (when (search-forward doi nil t)
+       (if file
+           (error (format "DOI %s (for pdf %s) already in your bibliography" doi file))
+         (message (format "DOI %s already in your bibliography" doi))
+         (throw throwname nil))))))
 
 ;;;###autoload
 (defun literature-try-to-format-bib (&optional file entry throwname)
@@ -147,11 +142,11 @@ throw to the named catch."
        (progn
          (message (format "Unable to properly format entry for %s, skipping"
                           (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "title" entry))))
-         (throw throwname nil)
-         ))
-     )
-    )
-  )
+         (throw throwname nil))))))
+         
+     
+    
+  
 
 ;;;###autoload
 (defun literature-get-key-from-bibtex ()
@@ -161,8 +156,8 @@ throw to the named catch."
   (bibtex-beginning-of-entry)
   ;; based on code from http://stackoverflow.com/a/15974319/4659293
   (when (re-search-forward "@[A-Za-z]+{\\(.*\\),")
-    (match-string 1))
-  )
+    (match-string 1)))
+  
 
 ;;;###autoload
 (defun literature-add-bib (file)
@@ -215,13 +210,13 @@ the file field is present)."
               (if (string= "" filepath)
                   (progn
                     (literature-setup-files key (buffer-substring-no-properties beg end))
-                    (message (format "Key %s added WITHOUT file, make sure it looks like you want" key))
-                    )
+                    (message (format "Key %s added WITHOUT file, make sure it looks like you want" key)))
+                    
                 (literature-setup-files key (buffer-substring-no-properties beg end) filepath)
-                (message (format "Key %s added with file, make sure it looks like you want" key))
-                ))
-            )
-          ))
+                (message (format "Key %s added with file, make sure it looks like you want" key)))))))
+                
+            
+          
       ;; If there's an actual error in the bib entry (and it's not
       ;; just formatted in a way org-ref doesn't like), this will
       ;; throw an error, so we catch it and make it clear what went
@@ -229,10 +224,10 @@ the file field is present)."
       (condition-case nil
           (bibtex-kill-entry)
         ('error (error "Your bib file is formatted incorrectly, I can't move through it!")))
-      (bibtex-beginning-of-entry)
-      )
-    )
-  )
+      (bibtex-beginning-of-entry))))
+      
+    
+  
 
 ;;;###autoload
 (defun literature-setup-files (key bib-contents &optional filepath)
@@ -255,8 +250,8 @@ the file field is present)."
     (when filepath
       (if (string= "pdf" (file-name-extension filepath))
           (bibtex-set-field "file" (concat ":../papers/" key ".pdf:PDF"))
-        (bibtex-set-field "file" (concat ":../papers/" key "." (file-name-extension filepath) ":"))
-        ))
+        (bibtex-set-field "file" (concat ":../papers/" key "." (file-name-extension filepath) ":"))))
+        
     (bibtex-beginning-of-entry)
     (save-buffer)
     ;; Create the note file
@@ -280,14 +275,14 @@ the file field is present)."
           (indent-relative)
           (if (string= "pdf" (file-name-extension filepath))
               (insert (concat "PDF: [[file:../papers/" key ".pdf]]"))
-            (insert (concat "File: [[file:../papers/" key "." (file-name-extension filepath) "]]"))
-            )
-          )
+            (insert (concat "File: [[file:../papers/" key "." (file-name-extension filepath) "]]"))))
+            
+          
         (cl-loop for elt in '(("Bibtex" "../bibs" "bib") ("Notes" "." "org")) do
                  (newline)
                  (indent-relative)
-                 (insert (concat (pop elt) ": [[file:" (pop elt) "/" key "." (pop elt) "]]"))
-                 )
+                 (insert (concat (pop elt) ": [[file:" (pop elt) "/" key "." (pop elt) "]]")))
+                 
         (outline-up-heading 2)
         (org-set-property "ADDED" (format-time-string "[%Y-%m-%d]"))
         (org-set-property "BIBTEX-KEY" key)
@@ -298,9 +293,9 @@ the file field is present)."
                           (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "author" entry)))
         (org-set-property "YEAR" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "year" entry)))
         (org-set-property "PUBLICATION" (replace-regexp-in-string "\n\\s-*" " " (reftex-get-bib-field "journal" entry)))
-        (save-buffer)
-        ))
-    )
+        (save-buffer))))
+        
+    
   ;; If we have a file, move it in
   (when filepath
     (rename-file filepath (concat literature-paper-superdirectory literature-paper-directory-name key "." (file-name-extension filepath))))
@@ -316,9 +311,9 @@ the file field is present)."
    nil)
   (kill-buffer (concat key ".org"))
   (kill-buffer (concat key ".bib"))
-  (kill-buffer literature-master-bib)
+  (kill-buffer literature-master-bib))
 
-  )
+  
 
 ;;;###autoload
 (defun literature-add-to-master-bib (key)
@@ -340,16 +335,16 @@ the file field is present)."
                                  (replace-regexp-in-string (concat "file\\(\\s-*\\)=\\(\\s-*\\){:../" literature-paper-directory-name "\\(.*\\)\\.\\(.*\\)") (concat "file\1=\\2{:" literature-paper-directory-name "\\3/\\3.\\4")
                                                            (with-temp-buffer
                                                              (insert-file-contents (concat literature-paper-superdirectory literature-bibtex-directory-name key ".bib"))
-                                                             (buffer-string))))
-       )
+                                                             (buffer-string)))))
+       
       (insert "\n")
       (goto-char (point-min))
-      (bibtex-sort-buffer)
-      )
-    (set-file-modes master-bib-path #o444)
-    )
+      (bibtex-sort-buffer))
+      
+    (set-file-modes master-bib-path #o444)))
+    
   
-  )
+  
 
 ;;;###autoload
 (defun git-update-commit (files rmflag)
@@ -382,8 +377,8 @@ rmflag is t) and push the change to origin master."
                  "Removes ")
                (shell-quote-argument (mapconcat 'identity files ", "))
                ;; And finally push to origin master
-               "\"" literature-shell-and "git push origin master"))))
-  )
+               "\"" literature-shell-and "git push origin master")))))
+  
 
 ;;;###autoload
 (defun literature-update ()
@@ -444,21 +439,21 @@ them, use literature-force-renew.
             (message (format "Bib %s updated, copying to master bib" key))
             (literature-remove-from-master-bib key)
             (literature-add-to-master-bib key)
-            (cl-pushnew master-bib-path added-files :test #'equal))
-          )
+            (cl-pushnew master-bib-path added-files :test #'equal)))
+          
         ;; Similar to literature-add-bib, we use kill-entry and
         ;; beginning-of-entry to move through the bib flie (here we've
         ;; inserted its comments into a temp-buffer, so none of these
         ;; actual changes will be made.
         (bibtex-kill-entry)
-        (bibtex-beginning-of-entry)
-        )
+        (bibtex-beginning-of-entry))
+        
       (git-update-commit added-files nil)
-      (git-update-commit removed-files t)
-      )
-    )
-  (message "Update finished")
-  )
+      (git-update-commit removed-files t)))
+      
+    
+  (message "Update finished"))
+  
 
 ;;;###autoload
 (defun literature-add-annotations-to-notefile (key)
@@ -477,18 +472,18 @@ them, use literature-force-renew.
       (insert "** Annotations\n\n")
       (cl-loop for elt in annotations do
                (insert (concat "\"" (cdr (assoc 'contents elt)) "\""))
-               (insert (concat " (page " (number-to-string (cdr (assoc 'page elt))) ")") )
-               (insert "\n\n")
-               )
+               (insert (concat " (page " (number-to-string (cdr (assoc 'page elt))) ")"))
+               (insert "\n\n"))
+               
       (indent-region (point-min) (point-max))
       ;; We don't want to call fill on the links section, so we do it
       ;; on everything up until then. I think this will not work on
       ;; any line that starts with a number, but I'm not sure.
       (goto-char (point-min))
-      (fill-individual-paragraphs (search-forward "** Notes") (search-forward "** Links"))
-      )
-    )
-  )
+      (fill-individual-paragraphs (search-forward "** Notes") (search-forward "** Links")))))
+      
+    
+  
 
 ;;;###autoload
 (defun literature-get-annotations (pdf)
@@ -497,9 +492,9 @@ each entry has two elements, the first is the page and the second
 is the content of the annotation. "
   (cl-loop for elt in (pdf-info-getannots nil pdf)
            if (equal (cdr (assoc 'type elt)) 'text)
-           collect (list (assoc 'page elt) (assoc 'contents elt))
-           )
-  )
+           collect (list (assoc 'page elt) (assoc 'contents elt))))
+           
+  
 
 ;;;###autoload
 (defun literature-remove-from-master-bib (key)
@@ -513,9 +508,9 @@ master bib file"
           (bibtex-kill-entry)
         (message (format "Key %s removed from master bib" key))
         (message (format "Key %s not found in master bib, so not removed" key))))
-    (set-file-modes master-bib-path #o444)
-    )
-  )
+    (set-file-modes master-bib-path #o444)))
+    
+  
 
 ;;;###autoload
 (defun literature-force-renew ()
@@ -539,17 +534,17 @@ bib are staged and committed."
                                           (replace-regexp-in-string (concat "file\\(\\s-*\\)=\\(\\s-*\\){:../" literature-paper-directory-name "\\(.*\\)\\.\\(.*\\)") (concat "file\\1=\\2{:" literature-paper-directory-name "\\3/\\3.\\4")
                                                                     (with-temp-buffer
                                                                       (insert-file-contents bibfile)
-                                                                      (buffer-string))))
-                )
-               (insert "\n")
-               )
+                                                                      (buffer-string)))))
+                
+               (insert "\n"))
+               
       (goto-char (point-min))
-      (bibtex-sort-buffer)
-      )
+      (bibtex-sort-buffer))
+      
     (set-file-modes master-bib-path #o444)
-    (git-update-commit (list master-bib-path) nil)
-    )
-  )
+    (git-update-commit (list master-bib-path) nil)))
+    
+  
 
 
 ;;; Second function (super force renew?) that will call
@@ -573,14 +568,14 @@ bib are staged and committed."
       (setq bibtex-completion-bibliography (car test-list))
       (print (car test-list))
       (print (bibtex-completion-candidates))
-      (setq test-list (cdr test-list)))
-    ))
+      (setq test-list (cdr test-list)))))
+    
 
 (defun trim-string (string)
   "Remove white spaces in beginning and ending of STRING.
 White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
-  (replace-regexp-in-string "\\`[ \t\n]*" "" (replace-regexp-in-string "[ \t\n]*\\'" "" string))
-  )
+  (replace-regexp-in-string "\\`[ \t\n]*" "" (replace-regexp-in-string "[ \t\n]*\\'" "" string)))
+  
 
 ;;;###autoload
 (defun literature-create-mini-bib ()
@@ -622,9 +617,9 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
   (let ((pdf-file (car (bibtex-completion-find-pdf key))))
     (if pdf-file
         pdf-file
-      "not found")
-    )
-  )
+      "not found")))
+    
+  
 
 (setq org-ref-get-pdf-filename-function 'my/find-one-pdf)
 
