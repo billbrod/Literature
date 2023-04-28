@@ -26,8 +26,8 @@
 (setq bibtex-completion-notes-extension ".org")
 (setq bibtex-completion-additional-search-fields '(journal))
 
-(setq org-ref-completion-library 'org-ref-ivy-cite)
 (require 'org-ref)
+(require 'org-ref-ivy)
 
 (setq bibtex-autokey-year-length 4
       bibtex-autokey-name-year-separator ""
@@ -44,22 +44,9 @@
 (setq literature-master-bib "literature.bib")
 
 (setq reftex-default-bibliography '("~/Org-Docs/Papers/literature.bib"))
-;; see org-ref for use of these variables
-(setq org-ref-default-bibliography '("~/Org-Docs/Papers/literature.bib")
-      org-ref-pdf-directory "~/Org-Docs/Papers/papers/")
-(setq org-ref-completion-library 'org-ref-ivy-cite)
-(setq org-ref-notes-function 'org-ref-notes-function-many-files)
-(setq org-ref-notes-directory "~/Org-Docs/Papers/notes/")
-
 ;; remove the download pdf function from hook, because it's unnecessary and
 ;; messes our functions
 (setq org-ref-clean-bibtex-entry-hook (delete 'orcb-download-pdf org-ref-clean-bibtex-entry-hook))
-
-;; make sure you have dash, helm, helm-bibtex, ebib, s, f, hydra and key-chord
-;; in your load-path
-
-;;; if you want a hydra for org-ref-bibtex
-(define-key bibtex-mode-map (kbd "C-c j") 'org-ref-bibtex-hydra/body)
 
 ;; I use pdf-tools in emacs to open the pdf. If you want to use your
 ;; system default (eg, evince or okular), uncomment this line.

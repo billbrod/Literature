@@ -618,10 +618,6 @@ White space here is any of: space, tab, emacs newline (line feed, ASCII 10)."
     (if pdf-file
         pdf-file
       "not found")))
-    
-  
-
-(setq org-ref-get-pdf-filename-function 'my/find-one-pdf)
 
 
 (provide 'literature)
